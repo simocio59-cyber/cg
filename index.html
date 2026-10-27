@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ma Vidéothèque</title>
+<style>
+  :root{--bg:#0f1115;--card:#1a1d24;--txt:#e8e8e8;--muted:#9aa0a6;--accent:#01b4e4;--danger:#e5484d}
+  *{box-sizing:border-box}
+  body{margin:0;font-family:system-ui,sans-serif;background:var(--bg);color:var(--txt)}
+  header{padding:16px 24px;background:#0b0d10;display:flex;gap:10px;align-items:center;flex-wrap:wrap;position:sticky;top:0;z-index:10}
+  h1{font-size:1.3rem;margin:0 auto 0 0}
+  input,button{font:inherit;border-radius:8px;border:1px solid #333;padding:8px 12px;background:#20242c;color:var(--txt)}
+  button{cursor:pointer;background:var(--accent);border:none;color:#000;font-weight:600}
+  button.secondary{background:#2c313a;color:var(--txt)}
+  button.danger{background:var(--danger);color:#fff}
+  main{padding:24px}
+  h2{font-size:1.1rem;color:var(--muted);display:flex;align-items:center;gap:10px}
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:16px;margin-bottom:32px}
+  .card{background:var(--card);border-radius:10px;overflow:hidden;display:flex;flex-direction:column;transition:transform .15s}
+  .card:hover{transform:translateY(-3px)}
+  .card img{width:100%;aspect-ratio:2/3;object-fit:cover;background:#222;display:block}
+  .info{padding:8px;display:flex;flex-direction:column;gap:6px;flex:1}
+  .title{font-weight:600;font-size:.9rem}
+  .year{color:var(--muted);font-size:.8rem}
+  .actions{display:flex;gap:6px;margin-top:auto}
+  .actions button{flex:1;padding:6px;font-size:.8rem}
+  .link{font-size:.85rem;color:var(--accent);text-decoration:none}
+  .link:hover{text-decoration:underline}
+  dialog{background:var(--card);color:var(--txt);border:none;border-radius:12px;padding:20px;width:min(420px,90vw)}
+  dialog::backdrop{background:rgba(0,0,0,.6)}
+  dialog form{display:flex;flex-direction:column;gap:12px}
+  dialog label{display:flex;flex-direction:column;gap:4px;font-size:.9rem}
+  .row{display:flex;gap:8px;justify-content:flex-end}
+  .empty{color:var(--muted)}
+  footer{padding:16px;text-align:center;color:var(--muted);font-size:.75rem}
+</style>
+</head>
+<body>
+
+<header>
+  <h1>🎬 Ma Vidéothèque</h1>
+  <form id="searchForm" style="display:flex;gap:8px">
+    <input id="query" placeholder="Rechercher un film..." required>
+    <button>Rechercher</button>
+  </form>
+  <button class="secondary" id="keyBtn">⚙️ Clé API</button>
+  <button class="secondary" id="exportBtn">📤 Exporter</button>
+  <button class="secondary" id="importBtn">📥 Importer</button>
+  <input type="file" id="importFile" accept=".json" hidden>
+</header>
+
+<main>
+  <section id="resultsSection" hidden>
+    <h2>Résultats de recherche <button class="secondary" id="closeResults">✕ Fermer</button></h2>
+    <div class="grid" id="results"></div>
+  </section>
+  <section>
+    <h2>Ma collection</h2>
+    <div class="grid" id="collection"></div>
+  </section>
+</main>
+
+<footer>Ce site utilise l'API TMDB mais n'est ni approuvé ni certifié par TMDB.</footer>
+
+<!-- Fenêtre : lien -->
+<dialog id="linkDialog">
+  <form id="linkForm">
+    <h3 id="dlgTitle" style="margin:0"></h3>
+    <label>Lien (URL)
+      <input id="linkUrl" type="url" placeholder="https://...">
+    </label>
+    <label>Texte du lien (optionnel)
+      <input id="linkLabel" placeholder="Bande-annonce, Netflix, critique...">
+    </label>
+    <div class="row">
+      <button type="button" class="secondary" id="cancelLink">Annuler</button>
+      <button>Enregistrer</button>
+    </div>
+  </form>
+</dialog>
+
+<!-- Fenêtre : clé API -->
+<dialog id="keyDialog">
+  <form id="keyForm">
+    <h3 style="margin:0">Clé API TMDB</h3>
+    <label>Colle ta clé API (v3) ou ton jeton d'accès (v4)
+      <input id="keyInput" required>
+    </label>
+    <div class="row">
+      <button type="button" class="secondary" onclick="keyDialog.close()">Annuler</button>
+      <button>Enregistrer</button>
+    </div>
+  </form>
+</dialog>
+
+<script>
+const IMG = 'https://image.tmdb.org/t/p/w342';
+const NO_IMG = 'data:image/svg+xml,' + encodeURIComponent(
+  '<svg xmlns="http://www.w3.org/2000/svg" width="200" height="300"><rect width="100%" height="100%" fill="#2a2e36"/><text x="50%" y="50%" fill="#777" font-size="20" text-anchor="middle">Pas d\'image</text></svg>');
+
+let apiKey = localStorage.getItem('tmdbKey') || '';
+let films = JSON.parse(localStorage.getItem('films') || '[]');
+let lastResults = [];
+let current = null; // film en cours d'édition
+
+const $ = id => document.getElementById(id);
+const save = () => localStorage.setItem('films', JSON.stringify(films));
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c =>
+  ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const poster = f => f.poster_path ? IMG + f.poster_path : NO_IMG;
+const year = f => (f.release_date || '').slice(0, 4);
+
+// ---------- API TMDB ----------
+async function tmdb(path, params = {}) {
+  const url = new URL('https://api.themoviedb.org/3' + path);
+  const opts = { headers: {} };
+  if (apiKey.startsWith('eyJ')) opts.headers.Authorization = 'Bearer ' + apiKey; // jeton v4
+  else url.searchParams.set('api_key', apiKey);                                  // clé v3
+  for (const [k, v] of Object.entries(params)) url.searchParams.set(k, v);
+  const r = await fetch(url, opts);
+  if (!r.ok) throw new Error(r.status === 401 ? 'Clé API invalide.' : 'Erreur TMDB ' + r.status);
+  return r.json();
+}
+
+// ---------- Recherche ----------
+$('searchForm').onsubmit = async e => {
+  e.preventDefault();
+  if (!apiKey) return openKeyDialog();
+  try {
+    const data = await tmdb('/search/movie', { query: $('query').value, language: 'fr-FR' });
+    lastResults = data.results;
+    renderResults();
+  } catch (err) { alert(err.message); }
+};
+
+function renderResults() {
+  $('resultsSection').hidden = false;
+  $('results').innerHTML = lastResults.length ? lastResults.map(f => {
+    const owned = films.some(x => x.id === f.id);
+    return `<div class="card">
+      <img src="${poster(f)}" alt="${esc(f.title)}" loading="lazy">
+      <div class="info">
+        <div class="title">${esc(f.title)}</div>
+        <div class="year">${year(f)}</div>
+        <div class="actions">
+          <button data-add="${f.id}" ${owned ? 'disabled' : ''}>${owned ? '✓ Ajouté' : '+ Ajouter'}</button>
+        </div>
+      </div></div>`;
+  }).join('') : '<p class="empty">Aucun résultat.</p>';
+}
+
+$('results').onclick = e => {
+  const id = e.target.dataset.add;
+  if (!id) return;
+  const f = lastResults.find(x => x.id == id);
+  openLinkDialog({ id: f.id, title: f.title, poster_path: f.poster_path,
+                   release_date: f.release_date, link: '', label: '' }, true);
+};
+
+$('closeResults').onclick = () => $('resultsSection').hidden = true;
+
+// ---------- Collection ----------
+function renderCollection() {
+  $('collection').innerHTML = films.length ? films.map(f => {
+    const img = `<img src="${poster(f)}" alt="${esc(f.title)}" loading="lazy">`;
+    return `<div class="card">
+      ${f.link ? `<a href="${esc(f.link)}" target="_blank" rel="noopener">${img}</a>` : img}
+      <div class="info">
+        <div class="title">${esc(f.title)}</div>
+        <div class="year">${year(f)}</div>
+        ${f.link ? `<a class="link" href="${esc(f.link)}" target="_blank" rel="noopener">🔗 ${esc(f.label || 'Ouvrir le lien')}</a>` : ''}
+        <div class="actions">
+          <button class="secondary" data-edit="${f.id}">✏️ Lien</button>
+          <button class="danger" data-del="${f.id}">🗑️</button>
+        </div>
+      </div></div>`;
+  }).join('') : '<p class="empty">Ta collection est vide. Recherche un film pour commencer !</p>';
+}
+
+$('collection').onclick = e => {
+  const { edit, del } = e.target.dataset;
+  if (edit) openLinkDialog(films.find(f => f.id == edit), false);
+  if (del && confirm('Supprimer ce film ?')) {
+    films = films.filter(f => f.id != del);
+    save(); renderCollection();
+    if (!$('resultsSection').hidden) renderResults();
+  }
+};
+
+// ---------- Fenêtre lien ----------
+let isNew = false;
+function openLinkDialog(film, newFilm) {
+  current = film; isNew = newFilm;
+  $('dlgTitle').textContent = film.title;
+  $('linkUrl').value = film.link || '';
+  $('linkLabel').value = film.label || '';
+  $('linkDialog').showModal();
+}
+
+$('linkForm').onsubmit = e => {
+  e.preventDefault();
+  const url = $('linkUrl').value.trim();
+  if (url && !/^https?:\/\//i.test(url)) return alert('Le lien doit commencer par http:// ou https://');
+  current.link = url;
+  current.label = $('linkLabel').value.trim();
+  if (isNew) films.unshift(current);
+  save(); renderCollection();
+  if (!$('resultsSection').hidden) renderResults();
+  $('linkDialog').close();
+};
+$('cancelLink').onclick = () => $('linkDialog').close();
+
+// ---------- Clé API ----------
+function openKeyDialog() { $('keyInput').value = apiKey; $('keyDialog').showModal(); }
+$('keyBtn').onclick = openKeyDialog;
+$('keyForm').onsubmit = e => {
+  e.preventDefault();
+  apiKey = $('keyInput').value.trim();
+  localStorage.setItem('tmdbKey', apiKey);
+  $('keyDialog').close();
+};
+
+// ---------- Export / Import ----------
+$('exportBtn').onclick = () => {
+  const blob = new Blob([JSON.stringify(films, null, 2)], { type: 'application/json' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'ma-videotheque.json';
+  a.click();
+};
+$('importBtn').onclick = () => $('importFile').click();
+$('importFile').onchange = async e => {
+  try {
+    const data = JSON.parse(await e.target.files[0].text());
+    if (!Array.isArray(data)) throw 0;
+    films = data; save(); renderCollection();
+  } catch { alert('Fichier invalide.'); }
+  e.target.value = '';
+};
+
+renderCollection();
+if (!apiKey) openKeyDialog();
+</script>
+</body>
+</html>
