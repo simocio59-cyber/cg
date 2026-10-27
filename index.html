@@ -2,18 +2,29 @@
 <html lang="fr">
 <head>
 <meta charset="UTF-8">
+<meta name="robots" content="noindex, nofollow">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Ma Vidéothèque</title>
 <style>
   :root{--bg:#0f1115;--card:#1a1d24;--txt:#e8e8e8;--muted:#9aa0a6;--accent:#01b4e4;--danger:#e5484d}
   *{box-sizing:border-box}
   body{margin:0;font-family:system-ui,sans-serif;background:var(--bg);color:var(--txt)}
-  header{padding:16px 24px;background:#0b0d10;display:flex;gap:10px;align-items:center;flex-wrap:wrap;position:sticky;top:0;z-index:10}
-  h1{font-size:1.3rem;margin:0 auto 0 0}
+  .hidden{display:none!important}
   input,button{font:inherit;border-radius:8px;border:1px solid #333;padding:8px 12px;background:#20242c;color:var(--txt)}
   button{cursor:pointer;background:var(--accent);border:none;color:#000;font-weight:600}
   button.secondary{background:#2c313a;color:var(--txt)}
   button.danger{background:var(--danger);color:#fff}
+  /* Connexion */
+  .login{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px}
+  .box{background:var(--card);padding:28px;border-radius:14px;width:min(360px,100%);display:flex;flex-direction:column;gap:16px}
+  .box h1{margin:0;text-align:center;font-size:1.4rem}
+  .box form{display:flex;flex-direction:column;gap:10px}
+  .box label{display:flex;flex-direction:column;gap:4px;font-size:.9rem}
+  details summary{cursor:pointer;color:var(--muted);font-size:.85rem;margin-bottom:10px}
+  .error{color:var(--danger);text-align:center;min-height:1.2em;margin:0;font-size:.9rem}
+  /* Site */
+  header{padding:16px 24px;background:#0b0d10;display:flex;gap:10px;align-items:center;flex-wrap:wrap;position:sticky;top:0;z-index:10}
+  header h1{font-size:1.3rem;margin:0 auto 0 0}
   main{padding:24px}
   h2{font-size:1.1rem;color:var(--muted);display:flex;align-items:center;gap:10px}
   .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:16px;margin-bottom:32px}
@@ -38,30 +49,53 @@
 </head>
 <body>
 
-<header>
-  <h1>🎬 Ma Vidéothèque</h1>
-  <form id="searchForm" style="display:flex;gap:8px">
-    <input id="query" placeholder="Rechercher un film..." required>
-    <button>Rechercher</button>
-  </form>
-  <button class="secondary" id="keyBtn">⚙️ Clé API</button>
-  <button class="secondary" id="exportBtn">📤 Exporter</button>
-  <button class="secondary" id="importBtn">📥 Importer</button>
-  <input type="file" id="importFile" accept=".json" hidden>
-</header>
+<!-- ===== Écran de connexion ===== -->
+<div id="loginScreen" class="login">
+  <div class="box">
+    <h1>🎬 Ma Vidéothèque</h1>
+    <form id="codeForm">
+      <label>Code d'accès
+        <input id="code" type="password" required autocomplete="off">
+      </label>
+      <button>Entrer</button>
+    </form>
+    <details id="adminBox">
+      <summary>Connexion admin</summary>
+      <form id="adminForm">
+        <input id="email" type="email" placeholder="E-mail" required>
+        <input id="pwd" type="password" placeholder="Mot de passe" required>
+        <button>Se connecter</button>
+      </form>
+    </details>
+    <p id="loginError" class="error"></p>
+  </div>
+</div>
 
-<main>
-  <section id="resultsSection" hidden>
-    <h2>Résultats de recherche <button class="secondary" id="closeResults">✕ Fermer</button></h2>
-    <div class="grid" id="results"></div>
-  </section>
-  <section>
-    <h2>Ma collection</h2>
-    <div class="grid" id="collection"></div>
-  </section>
-</main>
+<!-- ===== Site ===== -->
+<div id="app" class="hidden">
+  <header>
+    <h1>🎬 Ma Vidéothèque</h1>
+    <form id="searchForm" class="admin" style="display:flex;gap:8px">
+      <input id="query" placeholder="Rechercher un film..." required>
+      <button>Rechercher</button>
+    </form>
+    <button class="secondary admin" id="keyBtn">⚙️ Clé API</button>
+    <button class="secondary" id="logoutBtn">🚪 Déconnexion</button>
+  </header>
 
-<footer>Ce site utilise l'API TMDB mais n'est ni approuvé ni certifié par TMDB.</footer>
+  <main>
+    <section id="resultsSection" hidden>
+      <h2>Résultats de recherche <button class="secondary" id="closeResults">✕ Fermer</button></h2>
+      <div class="grid" id="results"></div>
+    </section>
+    <section>
+      <h2>Collection</h2>
+      <div class="grid" id="collection"></div>
+    </section>
+  </main>
+
+  <footer>Ce site utilise l'API TMDB mais n'est ni approuvé ni certifié par TMDB.</footer>
+</div>
 
 <!-- Fenêtre : lien -->
 <dialog id="linkDialog">
@@ -88,42 +122,110 @@
       <input id="keyInput" required>
     </label>
     <div class="row">
-      <button type="button" class="secondary" onclick="keyDialog.close()">Annuler</button>
+      <button type="button" class="secondary" id="cancelKey">Annuler</button>
       <button>Enregistrer</button>
     </div>
   </form>
 </dialog>
 
-<script>
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut }
+  from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+import { getFirestore, collection, doc, setDoc, deleteDoc, onSnapshot, query, orderBy }
+  from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+// ===== Config Firebase =====
+const firebaseConfig = {
+  apiKey: "AIzaSyCSXTITQx3oLlVT16Kk2SeACi9_G2gYLo0",
+  authDomain: "cgtl-9b100.firebaseapp.com",
+  projectId: "cgtl-9b100",
+  storageBucket: "cgtl-9b100.firebasestorage.app",
+  messagingSenderId: "996683479796",
+  appId: "1:996683479796:web:cb66241265ccf93394fca1"
+};
+
+const GUEST_EMAIL = 'invite@videotheque.app'; // compte invité (mot de passe : spider-man)
+
+const fb = initializeApp(firebaseConfig);
+const auth = getAuth(fb);
+const db = getFirestore(fb);
+
 const IMG = 'https://image.tmdb.org/t/p/w342';
 const NO_IMG = 'data:image/svg+xml,' + encodeURIComponent(
   '<svg xmlns="http://www.w3.org/2000/svg" width="200" height="300"><rect width="100%" height="100%" fill="#2a2e36"/><text x="50%" y="50%" fill="#777" font-size="20" text-anchor="middle">Pas d\'image</text></svg>');
 
-let apiKey = localStorage.getItem('tmdbKey') || '';
-let films = JSON.parse(localStorage.getItem('films') || '[]');
-let lastResults = [];
-let current = null; // film en cours d'édition
-
 const $ = id => document.getElementById(id);
-const save = () => localStorage.setItem('films', JSON.stringify(films));
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c =>
   ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const poster = f => f.poster_path ? IMG + f.poster_path : NO_IMG;
 const year = f => (f.release_date || '').slice(0, 4);
 
-// ---------- API TMDB ----------
+let apiKey = localStorage.getItem('tmdbKey') || '';
+let films = [], lastResults = [], isAdmin = false, unsub = null;
+let current = null, isNew = false;
+
+// ===== Connexion admin visible seulement avec #admin dans l'adresse =====
+function toggleAdminBox() {
+  $('adminBox').classList.toggle('hidden', location.hash !== '#admin');
+}
+toggleAdminBox();
+window.addEventListener('hashchange', toggleAdminBox);
+
+// ---------- Connexion ----------
+$('codeForm').onsubmit = async e => {
+  e.preventDefault();
+  $('loginError').textContent = '';
+  const code = $('code').value.trim().toLowerCase(); // "Spider-Man" = "spider-man"
+  try { await signInWithEmailAndPassword(auth, GUEST_EMAIL, code); }
+  catch { $('loginError').textContent = 'Code incorrect.'; }
+};
+
+$('adminForm').onsubmit = async e => {
+  e.preventDefault();
+  $('loginError').textContent = '';
+  try { await signInWithEmailAndPassword(auth, $('email').value.trim(), $('pwd').value); }
+  catch { $('loginError').textContent = 'E-mail ou mot de passe incorrect.'; }
+};
+
+$('logoutBtn').onclick = () => signOut(auth);
+
+onAuthStateChanged(auth, user => {
+  if (unsub) { unsub(); unsub = null; }
+  if (!user) {
+    $('app').classList.add('hidden');
+    $('loginScreen').classList.remove('hidden');
+    $('code').value = ''; $('pwd').value = '';
+    return;
+  }
+  isAdmin = user.email !== GUEST_EMAIL;
+  $('loginScreen').classList.add('hidden');
+  $('app').classList.remove('hidden');
+  document.querySelectorAll('.admin').forEach(el => el.classList.toggle('hidden', !isAdmin));
+
+  // Lecture des films en temps réel
+  unsub = onSnapshot(query(collection(db, 'films'), orderBy('addedAt', 'desc')), snap => {
+    films = snap.docs.map(d => d.data());
+    renderCollection();
+    if (!$('resultsSection').hidden) renderResults();
+  }, err => {
+    alert("Accès refusé. Ce compte n'est pas autorisé.");
+    signOut(auth);
+  });
+});
+
+// ---------- API TMDB (admin) ----------
 async function tmdb(path, params = {}) {
   const url = new URL('https://api.themoviedb.org/3' + path);
   const opts = { headers: {} };
-  if (apiKey.startsWith('eyJ')) opts.headers.Authorization = 'Bearer ' + apiKey; // jeton v4
-  else url.searchParams.set('api_key', apiKey);                                  // clé v3
+  if (apiKey.startsWith('eyJ')) opts.headers.Authorization = 'Bearer ' + apiKey;
+  else url.searchParams.set('api_key', apiKey);
   for (const [k, v] of Object.entries(params)) url.searchParams.set(k, v);
   const r = await fetch(url, opts);
   if (!r.ok) throw new Error(r.status === 401 ? 'Clé API invalide.' : 'Erreur TMDB ' + r.status);
   return r.json();
 }
 
-// ---------- Recherche ----------
 $('searchForm').onsubmit = async e => {
   e.preventDefault();
   if (!apiKey) return openKeyDialog();
@@ -157,7 +259,6 @@ $('results').onclick = e => {
   openLinkDialog({ id: f.id, title: f.title, poster_path: f.poster_path,
                    release_date: f.release_date, link: '', label: '' }, true);
 };
-
 $('closeResults').onclick = () => $('resultsSection').hidden = true;
 
 // ---------- Collection ----------
@@ -170,26 +271,24 @@ function renderCollection() {
         <div class="title">${esc(f.title)}</div>
         <div class="year">${year(f)}</div>
         ${f.link ? `<a class="link" href="${esc(f.link)}" target="_blank" rel="noopener">🔗 ${esc(f.label || 'Ouvrir le lien')}</a>` : ''}
-        <div class="actions">
+        ${isAdmin ? `<div class="actions">
           <button class="secondary" data-edit="${f.id}">✏️ Lien</button>
           <button class="danger" data-del="${f.id}">🗑️</button>
-        </div>
+        </div>` : ''}
       </div></div>`;
-  }).join('') : '<p class="empty">Ta collection est vide. Recherche un film pour commencer !</p>';
+  }).join('') : '<p class="empty">La collection est vide.</p>';
 }
 
-$('collection').onclick = e => {
+$('collection').onclick = async e => {
   const { edit, del } = e.target.dataset;
-  if (edit) openLinkDialog(films.find(f => f.id == edit), false);
+  if (edit) openLinkDialog({ ...films.find(f => f.id == edit) }, false);
   if (del && confirm('Supprimer ce film ?')) {
-    films = films.filter(f => f.id != del);
-    save(); renderCollection();
-    if (!$('resultsSection').hidden) renderResults();
+    try { await deleteDoc(doc(db, 'films', String(del))); }
+    catch { alert('Suppression impossible.'); }
   }
 };
 
 // ---------- Fenêtre lien ----------
-let isNew = false;
 function openLinkDialog(film, newFilm) {
   current = film; isNew = newFilm;
   $('dlgTitle').textContent = film.title;
@@ -198,49 +297,30 @@ function openLinkDialog(film, newFilm) {
   $('linkDialog').showModal();
 }
 
-$('linkForm').onsubmit = e => {
+$('linkForm').onsubmit = async e => {
   e.preventDefault();
   const url = $('linkUrl').value.trim();
   if (url && !/^https?:\/\//i.test(url)) return alert('Le lien doit commencer par http:// ou https://');
   current.link = url;
   current.label = $('linkLabel').value.trim();
-  if (isNew) films.unshift(current);
-  save(); renderCollection();
-  if (!$('resultsSection').hidden) renderResults();
-  $('linkDialog').close();
+  if (isNew) current.addedAt = Date.now();
+  try {
+    await setDoc(doc(db, 'films', String(current.id)), current, { merge: true });
+    $('linkDialog').close();
+  } catch { alert('Enregistrement impossible.'); }
 };
 $('cancelLink').onclick = () => $('linkDialog').close();
 
 // ---------- Clé API ----------
 function openKeyDialog() { $('keyInput').value = apiKey; $('keyDialog').showModal(); }
 $('keyBtn').onclick = openKeyDialog;
+$('cancelKey').onclick = () => $('keyDialog').close();
 $('keyForm').onsubmit = e => {
   e.preventDefault();
   apiKey = $('keyInput').value.trim();
   localStorage.setItem('tmdbKey', apiKey);
   $('keyDialog').close();
 };
-
-// ---------- Export / Import ----------
-$('exportBtn').onclick = () => {
-  const blob = new Blob([JSON.stringify(films, null, 2)], { type: 'application/json' });
-  const a = document.createElement('a');
-  a.href = URL.createObjectURL(blob);
-  a.download = 'ma-videotheque.json';
-  a.click();
-};
-$('importBtn').onclick = () => $('importFile').click();
-$('importFile').onchange = async e => {
-  try {
-    const data = JSON.parse(await e.target.files[0].text());
-    if (!Array.isArray(data)) throw 0;
-    films = data; save(); renderCollection();
-  } catch { alert('Fichier invalide.'); }
-  e.target.value = '';
-};
-
-renderCollection();
-if (!apiKey) openKeyDialog();
 </script>
 </body>
 </html>
