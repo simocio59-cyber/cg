@@ -28,6 +28,9 @@
   #yearInput{width:90px}
   main{padding:24px}
   h2{font-size:1.1rem;color:var(--muted);display:flex;align-items:center;gap:10px}
+  .count{font-size:.75rem;background:#2c313a;color:var(--txt);padding:2px 8px;border-radius:10px}
+  .toolbar{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px}
+  #filterText{flex:1;min-width:200px}
   .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:16px;margin-bottom:32px}
   .card{background:var(--card);border-radius:10px;overflow:hidden;display:flex;flex-direction:column;transition:transform .15s}
   .card:hover{transform:translateY(-3px)}
@@ -86,7 +89,7 @@
         <option value="movie">Films</option>
         <option value="tv">Séries</option>
       </select>
-      <input id="query" placeholder="Rechercher..." required>
+      <input id="query" placeholder="Ajouter depuis TMDB..." required>
       <input id="yearInput" type="number" min="1900" max="2100" placeholder="Année">
       <button>Rechercher</button>
     </form>
@@ -100,9 +103,23 @@
       <h2>Résultats de recherche <button class="secondary" id="closeResults">✕ Fermer</button></h2>
       <div class="grid" id="results"></div>
     </section>
+
     <section>
-      <h2>Collection</h2>
-      <div class="grid" id="collection"></div>
+      <div class="toolbar">
+        <input id="filterText" type="search" placeholder="🔎 Rechercher dans la collection...">
+        <select id="filterType">
+          <option value="all">Tout</option>
+          <option value="movie">Films</option>
+          <option value="tv">Séries</option>
+        </select>
+        <select id="sortBy">
+          <option value="recent">Ajout récent</option>
+          <option value="title">Titre A → Z</option>
+          <option value="new">Année (récent)</option>
+          <option value="old">Année (ancien)</option>
+        </select>
+      </div>
+      <div id="collection"></div>
     </section>
   </main>
 
@@ -185,6 +202,8 @@ const esc = s => String(s ?? '').replace(/[&<>"']/g, c =>
 const poster = f => f.poster_path ? IMG + f.poster_path : NO_IMG;
 const year = f => (f.release_date || '').slice(0, 4);
 const badge = f => f.type === 'tv' ? '<span class="badge">Série</span>' : '';
+// Texte sans accents ni majuscules (pour la recherche)
+const plain = s => String(s || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim();
 
 const norm = (r, type) => ({
   id: r.id, type,
@@ -193,7 +212,6 @@ const norm = (r, type) => ({
   release_date: r.release_date || r.first_air_date || ''
 });
 
-// Extrait l'identifiant d'une vidéo YouTube ('' = vide, null = invalide)
 const ytKey = s => {
   s = (s || '').trim();
   if (!s) return '';
@@ -266,7 +284,6 @@ async function tmdb(path, params = {}) {
   return r.json();
 }
 
-// Cherche la bande-annonce : d'abord en français, sinon en anglais
 async function findTrailer(type, id) {
   if (!apiKey) return '';
   for (const lang of ['fr-FR', 'en-US']) {
@@ -335,24 +352,59 @@ $('results').onclick = async e => {
 };
 $('closeResults').onclick = () => $('resultsSection').hidden = true;
 
-// ---------- Collection ----------
-function renderCollection() {
-  $('collection').innerHTML = films.length ? films.map(f => {
-    const img = `<img src="${poster(f)}" alt="${esc(f.title)}" loading="lazy">`;
-    return `<div class="card">
-      ${f.link ? `<a href="${esc(f.link)}" target="_blank" rel="noopener">${img}</a>` : img}
-      <div class="info">
-        <div class="title">${esc(f.title)}${badge(f)}</div>
-        <div class="year">${year(f)}</div>
-        ${f.trailer ? `<button class="secondary trailerBtn" data-trailer="${esc(f.trailer)}">▶ Bande-annonce</button>` : ''}
-        ${f.link ? `<a class="link" href="${esc(f.link)}" target="_blank" rel="noopener">🔗 ${esc(f.label || 'Ouvrir le lien')}</a>` : ''}
-        ${isAdmin ? `<div class="actions">
-          <button class="secondary" data-edit="${esc(f.key)}">✏️ Modifier</button>
-          <button class="danger" data-del="${esc(f.key)}">🗑️</button>
-        </div>` : ''}
-      </div></div>`;
-  }).join('') : '<p class="empty">La collection est vide.</p>';
+// ---------- Collection : recherche, tri, groupes ----------
+$('filterType').value = localStorage.getItem('filterType') || 'all';
+$('sortBy').value = localStorage.getItem('sortBy') || 'recent';
+
+const sorters = {
+  recent: (a, b) => (b.addedAt || 0) - (a.addedAt || 0),
+  title:  (a, b) => String(a.title).localeCompare(String(b.title), 'fr', { sensitivity: 'base' }),
+  new:    (a, b) => (b.release_date || '').localeCompare(a.release_date || ''),
+  old:    (a, b) => (a.release_date || '9999').localeCompare(b.release_date || '9999')
+};
+
+function cardHTML(f) {
+  const img = `<img src="${poster(f)}" alt="${esc(f.title)}" loading="lazy">`;
+  return `<div class="card">
+    ${f.link ? `<a href="${esc(f.link)}" target="_blank" rel="noopener">${img}</a>` : img}
+    <div class="info">
+      <div class="title">${esc(f.title)}${badge(f)}</div>
+      <div class="year">${year(f)}</div>
+      ${f.trailer ? `<button class="secondary trailerBtn" data-trailer="${esc(f.trailer)}">▶ Bande-annonce</button>` : ''}
+      ${f.link ? `<a class="link" href="${esc(f.link)}" target="_blank" rel="noopener">🔗 ${esc(f.label || 'Ouvrir le lien')}</a>` : ''}
+      ${isAdmin ? `<div class="actions">
+        <button class="secondary" data-edit="${esc(f.key)}">✏️ Modifier</button>
+        <button class="danger" data-del="${esc(f.key)}">🗑️</button>
+      </div>` : ''}
+    </div></div>`;
 }
+
+function renderCollection() {
+  if (!films.length) {
+    $('collection').innerHTML = '<p class="empty">La collection est vide.</p>';
+    return;
+  }
+  const q = plain($('filterText').value);
+  const show = $('filterType').value;
+  const list = films.filter(f => !q || plain(f.title).includes(q))
+                    .sort(sorters[$('sortBy').value] || sorters.recent);
+
+  const groups = [
+    { type: 'movie', title: '🎬 Films',  items: list.filter(f => (f.type || 'movie') === 'movie') },
+    { type: 'tv',    title: '📺 Séries', items: list.filter(f => f.type === 'tv') }
+  ].filter(g => show === 'all' ? g.items.length : g.type === show);
+
+  const html = groups.map(g => `
+    <h2>${g.title} <span class="count">${g.items.length}</span></h2>
+    ${g.items.length ? `<div class="grid">${g.items.map(cardHTML).join('')}</div>`
+                     : '<p class="empty">Rien ici.</p>'}`).join('');
+
+  $('collection').innerHTML = html || '<p class="empty">Aucun résultat pour cette recherche.</p>';
+}
+
+$('filterText').oninput = renderCollection;
+$('filterType').onchange = () => { localStorage.setItem('filterType', $('filterType').value); renderCollection(); };
+$('sortBy').onchange = () => { localStorage.setItem('sortBy', $('sortBy').value); renderCollection(); };
 
 $('collection').onclick = async e => {
   const btn = e.target.closest('button');
@@ -376,7 +428,7 @@ function playTrailer(k) {
   $('trailerDialog').showModal();
 }
 $('closeTrailer').onclick = () => $('trailerDialog').close();
-$('trailerDialog').addEventListener('close', () => $('player').src = '');   // coupe le son
+$('trailerDialog').addEventListener('close', () => $('player').src = '');
 $('trailerDialog').onclick = e => { if (e.target === $('trailerDialog')) $('trailerDialog').close(); };
 
 // ---------- Bandes-annonces pour la collection existante ----------
