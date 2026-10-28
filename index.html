@@ -27,18 +27,21 @@
   #searchForm{display:flex;gap:8px;flex-wrap:wrap}
   #yearInput{width:90px}
   main{padding:24px}
-  h2{font-size:1.1rem;color:var(--muted);display:flex;align-items:center;gap:10px}
-  /* ===== Gros onglets ===== */
-  .tabs{display:flex;justify-content:center;gap:16px;margin:8px 0 24px;flex-wrap:wrap}
-  .tab{flex:1;max-width:280px;min-width:140px;font-size:1.3rem;padding:18px 24px;border-radius:14px;
-       background:#2c313a;color:var(--txt);border:2px solid transparent;
-       display:flex;align-items:center;justify-content:center;gap:10px;transition:all .15s}
-  .tab:hover{border-color:var(--accent)}
-  .tab.active{background:var(--accent);color:#000;transform:scale(1.04)}
-  .count{font-size:.8rem;background:rgba(0,0,0,.35);color:inherit;padding:2px 10px;border-radius:10px}
-  .toolbar{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px}
-  #filterText{flex:1;min-width:200px}
+  h2{font-size:1.2rem;color:var(--txt);display:flex;align-items:center;gap:10px;margin:0}
+  /* ===== Barre de recherche + tri ===== */
+  .toolbar{display:flex;gap:8px;align-items:center;justify-content:space-between;flex-wrap:wrap;margin-bottom:20px}
+  #filterText{width:240px;max-width:100%;padding:6px 10px;font-size:.9rem}
+  #sortBy{padding:6px 10px;font-size:.9rem}
+  /* ===== Sections Films / Séries ===== */
+  .group{margin-bottom:36px}
+  .section-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;gap:10px}
+  .count{font-size:.75rem;background:#2c313a;color:var(--txt);padding:2px 10px;border-radius:10px;font-weight:600}
+  .seeAll{background:none;color:var(--accent);padding:4px 8px;font-size:.95rem}
+  .seeAll:hover{text-decoration:underline}
   .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:16px;margin-bottom:32px}
+  .grid6{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:16px}
+  @media (max-width:1000px){.grid6{grid-template-columns:repeat(3,minmax(0,1fr))}}
+  @media (max-width:560px){.grid6{grid-template-columns:repeat(2,minmax(0,1fr))}}
   .card{background:var(--card);border-radius:10px;overflow:hidden;display:flex;flex-direction:column;transition:transform .15s}
   .card:hover{transform:translateY(-3px)}
   .card img{width:100%;aspect-ratio:2/3;object-fit:cover;background:#222;display:block}
@@ -58,7 +61,7 @@
   #trailerDialog{width:min(900px,95vw);padding:12px}
   .video{width:100%;aspect-ratio:16/9;border:0;border-radius:8px;display:block;background:#000}
   .row{display:flex;gap:8px;justify-content:flex-end}
-  .empty{color:var(--muted);text-align:center}
+  .empty{color:var(--muted)}
   footer{padding:16px;text-align:center;color:var(--muted);font-size:.75rem}
 </style>
 </head>
@@ -107,28 +110,20 @@
 
   <main>
     <section id="resultsSection" hidden>
-      <h2>Résultats de recherche <button class="secondary" id="closeResults">✕ Fermer</button></h2>
+      <h2 style="margin-bottom:12px">Résultats de recherche <button class="secondary" id="closeResults">✕ Fermer</button></h2>
       <div class="grid" id="results"></div>
     </section>
 
-    <section>
-      <!-- Gros onglets -->
-      <div class="tabs">
-        <button class="tab" data-tab="movie">🎬 Films <span class="count" id="countMovie">0</span></button>
-        <button class="tab" data-tab="tv">📺 Séries <span class="count" id="countTv">0</span></button>
-      </div>
-
-      <div class="toolbar">
-        <input id="filterText" type="search" placeholder="🔎 Rechercher dans la collection...">
-        <select id="sortBy">
-          <option value="recent">Ajout récent</option>
-          <option value="title">Titre A → Z</option>
-          <option value="new">Année (récent)</option>
-          <option value="old">Année (ancien)</option>
-        </select>
-      </div>
-      <div id="collection"></div>
-    </section>
+    <div class="toolbar">
+      <input id="filterText" type="search" placeholder="🔎 Rechercher...">
+      <select id="sortBy">
+        <option value="recent">Ajout récent</option>
+        <option value="title">Titre A → Z</option>
+        <option value="new">Année (récent)</option>
+        <option value="old">Année (ancien)</option>
+      </select>
+    </div>
+    <div id="collection"></div>
   </main>
 
   <footer>Ce site utilise l'API TMDB mais n'est ni approuvé ni certifié par TMDB.</footer>
@@ -227,10 +222,12 @@ const ytKey = s => {
   return m ? m[1] : null;
 };
 
+const LIMIT = 6;                              // nombre de titres affichés avant "Voir tout"
+const expanded = { movie: false, tv: false }; // sections ouvertes en entier
+
 let apiKey = localStorage.getItem('tmdbKey') || '';
 let films = [], lastResults = [], isAdmin = false, unsub = null;
 let current = null, isNew = false;
-let tab = localStorage.getItem('tab') === 'tv' ? 'tv' : 'movie';
 
 // ===== Connexion admin visible seulement avec #admin =====
 function toggleAdminBox() {
@@ -360,16 +357,7 @@ $('results').onclick = async e => {
 };
 $('closeResults').onclick = () => $('resultsSection').hidden = true;
 
-// ---------- Onglets Films / Séries ----------
-document.querySelectorAll('.tab').forEach(b => {
-  b.onclick = () => {
-    tab = b.dataset.tab;
-    localStorage.setItem('tab', tab);
-    renderCollection();
-  };
-});
-
-// ---------- Collection : recherche, tri, onglets ----------
+// ---------- Collection : recherche, tri, sections ----------
 $('sortBy').value = localStorage.getItem('sortBy') || 'recent';
 
 const sorters = {
@@ -396,28 +384,37 @@ function cardHTML(f) {
 }
 
 function renderCollection() {
-  // Onglet actif en bleu
-  document.querySelectorAll('.tab').forEach(b => b.classList.toggle('active', b.dataset.tab === tab));
-
+  if (!films.length) {
+    $('collection').innerHTML = '<p class="empty">La collection est vide.</p>';
+    return;
+  }
   const q = plain($('filterText').value);
   const list = films.filter(f => !q || plain(f.title).includes(q))
                     .sort(sorters[$('sortBy').value] || sorters.recent);
-  const movies = list.filter(f => (f.type || 'movie') === 'movie');
-  const shows  = list.filter(f => f.type === 'tv');
 
-  $('countMovie').textContent = movies.length;
-  $('countTv').textContent = shows.length;
+  const groups = [
+    { type: 'movie', title: '🎬 Films',  items: list.filter(f => (f.type || 'movie') === 'movie') },
+    { type: 'tv',    title: '📺 Séries', items: list.filter(f => f.type === 'tv') }
+  ];
 
-  const items = tab === 'tv' ? shows : movies;
-  const label = tab === 'tv' ? 'série' : 'film';
+  const html = groups.map(g => {
+    if (q && !g.items.length) return '';            // en recherche : on cache les sections vides
+    const open = expanded[g.type] || !!q;           // en recherche : tout est affiché
+    const shown = open ? g.items : g.items.slice(0, LIMIT);
+    const toggle = !q && g.items.length > LIMIT
+      ? `<button class="seeAll" data-toggle="${g.type}">${expanded[g.type] ? 'Voir moins ↑' : `Voir tout (${g.items.length}) →`}</button>`
+      : '';
+    return `<section class="group" id="group-${g.type}">
+      <div class="section-head">
+        <h2>${g.title} <span class="count">${g.items.length}</span></h2>
+        ${toggle}
+      </div>
+      ${shown.length ? `<div class="grid6">${shown.map(cardHTML).join('')}</div>`
+                     : '<p class="empty">Rien pour l\'instant.</p>'}
+    </section>`;
+  }).join('');
 
-  if (items.length) {
-    $('collection').innerHTML = `<div class="grid">${items.map(cardHTML).join('')}</div>`;
-  } else if (q) {
-    $('collection').innerHTML = `<p class="empty">Aucun ${label} ne correspond à ta recherche.</p>`;
-  } else {
-    $('collection').innerHTML = `<p class="empty">Aucun${tab === 'tv' ? 'e' : ''} ${label} pour l'instant.</p>`;
-  }
+  $('collection').innerHTML = html || '<p class="empty">Aucun résultat pour cette recherche.</p>';
 }
 
 $('filterText').oninput = renderCollection;
@@ -426,7 +423,13 @@ $('sortBy').onchange = () => { localStorage.setItem('sortBy', $('sortBy').value)
 $('collection').onclick = async e => {
   const btn = e.target.closest('button');
   if (!btn) return;
-  const { edit, del, trailer } = btn.dataset;
+  const { edit, del, trailer, toggle } = btn.dataset;
+  if (toggle) {
+    expanded[toggle] = !expanded[toggle];
+    renderCollection();
+    if (!expanded[toggle]) $('group-' + toggle)?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    return;
+  }
   if (trailer) return playTrailer(trailer);
   if (edit) {
     const item = { ...films.find(f => f.key === edit) };
@@ -492,8 +495,6 @@ $('linkForm').onsubmit = async e => {
   try {
     await setDoc(doc(db, 'films', key), data, { merge: true });
     $('linkDialog').close();
-    // Bascule sur le bon onglet après un ajout
-    if (isNew) { tab = data.type === 'tv' ? 'tv' : 'movie'; localStorage.setItem('tab', tab); renderCollection(); }
   } catch { alert('Enregistrement impossible.'); }
 };
 $('cancelLink').onclick = () => $('linkDialog').close();
