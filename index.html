@@ -5,55 +5,91 @@
 <meta name="robots" content="noindex, nofollow">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Ma Vidéothèque</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
-  :root{--bg:#0f1115;--card:#1a1d24;--txt:#e8e8e8;--muted:#9aa0a6;--accent:#01b4e4;--danger:#e5484d}
+  :root{--bg:#050506;--card:#16181d;--txt:#f2f2f2;--muted:#8d9096;--line:#26282d;--accent:#01b4e4;--danger:#e5484d;
+        --display:'Archivo Black',system-ui,sans-serif;--mono:'JetBrains Mono',ui-monospace,monospace}
   *{box-sizing:border-box}
   body{margin:0;font-family:system-ui,sans-serif;background:var(--bg);color:var(--txt)}
   .hidden{display:none!important}
-  input,button,select{font:inherit;border-radius:8px;border:1px solid #333;padding:8px 12px;background:#20242c;color:var(--txt)}
+  input,button,select{font:inherit;border-radius:8px;border:1px solid #333;padding:8px 12px;background:#1b1d22;color:var(--txt)}
   button{cursor:pointer;background:var(--accent);border:none;color:#000;font-weight:600}
   button:disabled{opacity:.6;cursor:default}
-  button.secondary{background:#2c313a;color:var(--txt)}
+  button.secondary{background:#2a2d34;color:var(--txt)}
   button.danger{background:var(--danger);color:#fff}
+
+  /* Connexion */
   .login{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px}
   .box{background:var(--card);padding:28px;border-radius:14px;width:min(360px,100%);display:flex;flex-direction:column;gap:16px}
-  .box h1{margin:0;text-align:center;font-size:1.4rem}
+  .box h1{margin:0;text-align:center;font-size:1.4rem;font-family:var(--display);text-transform:uppercase}
   .box form{display:flex;flex-direction:column;gap:10px}
   .box label{display:flex;flex-direction:column;gap:4px;font-size:.9rem}
   details summary{cursor:pointer;color:var(--muted);font-size:.85rem;margin-bottom:10px}
   .error{color:var(--danger);text-align:center;min-height:1.2em;margin:0;font-size:.9rem}
-  header{padding:16px 24px;background:#0b0d10;display:flex;gap:10px;align-items:center;flex-wrap:wrap;position:sticky;top:0;z-index:10}
-  header h1{font-size:1.3rem;margin:0 auto 0 0}
+
+  /* En-tête */
+  header{padding:14px 24px;background:#000;border-bottom:1px solid var(--line);display:flex;gap:10px;align-items:center;flex-wrap:wrap;position:sticky;top:0;z-index:10}
+  header h1{font-size:1.2rem;margin:0 auto 0 0;font-family:var(--display);text-transform:uppercase}
   #searchForm{display:flex;gap:8px;flex-wrap:wrap}
   #yearInput{width:90px}
-  main{padding:24px}
-  h2{font-size:1.2rem;color:var(--txt);display:flex;align-items:center;gap:10px;margin:0}
-  /* ===== Barre de recherche + tri ===== */
-  .toolbar{display:flex;gap:8px;align-items:center;justify-content:space-between;flex-wrap:wrap;margin-bottom:20px}
-  #filterText{width:240px;max-width:100%;padding:6px 10px;font-size:.9rem}
-  #sortBy{padding:6px 10px;font-size:.9rem}
-  /* ===== Sections Films / Séries ===== */
-  .group{margin-bottom:36px}
-  .section-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;gap:10px}
-  .count{font-size:.75rem;background:#2c313a;color:var(--txt);padding:2px 10px;border-radius:10px;font-weight:600}
-  .seeAll{background:none;color:var(--accent);padding:4px 8px;font-size:.95rem}
-  .seeAll:hover{text-decoration:underline}
-  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:16px;margin-bottom:32px}
-  .grid6{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:16px}
+  main{padding:24px 40px}
+
+  /* Petite barre de recherche à gauche */
+  .toolbar{margin-bottom:8px}
+  #filterText{width:240px;max-width:100%;padding:7px 12px;font-size:.9rem;font-family:var(--mono)}
+
+  /* Sections */
+  .group{margin-bottom:40px}
+  .section-head{display:flex;align-items:center;justify-content:space-between;gap:16px;
+                border-top:1px solid var(--line);padding-top:28px;margin-bottom:24px}
+  .sec-title{font-family:var(--display);text-transform:uppercase;font-size:clamp(1.3rem,3.5vw,2.1rem);
+             margin:0;line-height:1.1;color:#fff}
+  .seeAll{margin-left:auto;flex-shrink:0;background:none;border:none;border-bottom:2px solid #fff;border-radius:0;
+          color:#fff;font-family:var(--mono);font-weight:500;text-transform:uppercase;letter-spacing:.2em;
+          padding:2px 0;font-size:.95rem;white-space:nowrap}
+  .seeAll:hover{color:var(--accent);border-color:var(--accent)}
+
+  /* Grille : 6 par ligne sur PC, 3 sur tablette, 2 sur téléphone */
+  .grid6{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:22px}
   @media (max-width:1000px){.grid6{grid-template-columns:repeat(3,minmax(0,1fr))}}
-  @media (max-width:560px){.grid6{grid-template-columns:repeat(2,minmax(0,1fr))}}
-  .card{background:var(--card);border-radius:10px;overflow:hidden;display:flex;flex-direction:column;transition:transform .15s}
-  .card:hover{transform:translateY(-3px)}
-  .card img{width:100%;aspect-ratio:2/3;object-fit:cover;background:#222;display:block}
-  .info{padding:8px;display:flex;flex-direction:column;gap:6px;flex:1}
-  .title{font-weight:600;font-size:.9rem}
-  .year{color:var(--muted);font-size:.8rem}
-  .badge{font-size:.7rem;background:#2c313a;color:var(--accent);padding:2px 6px;border-radius:6px;margin-left:4px}
+  @media (max-width:700px){
+    main{padding:16px}
+    .grid6{grid-template-columns:repeat(2,minmax(0,1fr));gap:18px}
+    .seeAll{font-size:.85rem;letter-spacing:.15em}
+  }
+
+  /* Carte */
+  .card{display:flex;flex-direction:column;min-width:0}
+  .poster{position:relative;border-radius:6px;overflow:hidden;background:#1b1d22;display:block;transition:transform .15s}
+  .poster:hover{transform:translateY(-3px)}
+  .poster img{width:100%;aspect-ratio:2/3;object-fit:cover;display:block}
+  .tag,.rating{position:absolute;font-family:var(--mono);text-transform:uppercase;letter-spacing:.12em;
+               border:1px solid rgba(255,255,255,.25);padding:4px 9px;font-size:.75rem;color:#fff}
+  .tag{top:10px;left:10px;background:rgba(25,22,5,.85)}
+  .rating{bottom:10px;right:10px;background:rgba(0,0,0,.85);letter-spacing:.05em}
+  .head{display:flex;justify-content:space-between;align-items:baseline;gap:8px;margin-top:12px}
+  .title{font-family:var(--display);text-transform:uppercase;font-size:1rem;line-height:1.2;overflow-wrap:anywhere}
+  .year{font-family:var(--mono);color:var(--muted);font-size:.85rem;flex-shrink:0}
+  .genres{font-family:var(--mono);color:var(--muted);text-transform:uppercase;letter-spacing:.14em;font-size:.72rem;margin-top:6px}
+  .sep{border-top:1px solid var(--line);margin:10px 0 8px}
+  .extras{display:flex;flex-direction:column;gap:6px}
   .trailerBtn{padding:6px;font-size:.8rem}
-  .actions{display:flex;gap:6px;margin-top:auto}
+  .actions{display:flex;gap:6px}
   .actions button{flex:1;padding:6px;font-size:.8rem}
-  .link{font-size:.85rem;color:var(--accent);text-decoration:none}
+  .link{font-family:var(--mono);font-size:.8rem;color:var(--accent);text-decoration:none;overflow-wrap:anywhere}
   .link:hover{text-decoration:underline}
+  @media (max-width:700px){
+    .title{font-size:.9rem}
+    .tag,.rating{font-size:.65rem;padding:3px 7px}
+  }
+
+  /* Résultats TMDB */
+  .results-head{display:flex;align-items:center;gap:10px;margin:0 0 16px}
+  .results-head h2{margin:0;font-family:var(--display);text-transform:uppercase;font-size:1.2rem}
+
+  /* Fenêtres */
   dialog{background:var(--card);color:var(--txt);border:none;border-radius:12px;padding:20px;width:min(420px,90vw)}
   dialog::backdrop{background:rgba(0,0,0,.75)}
   dialog form{display:flex;flex-direction:column;gap:12px}
@@ -61,7 +97,7 @@
   #trailerDialog{width:min(900px,95vw);padding:12px}
   .video{width:100%;aspect-ratio:16/9;border:0;border-radius:8px;display:block;background:#000}
   .row{display:flex;gap:8px;justify-content:flex-end}
-  .empty{color:var(--muted)}
+  .empty{color:var(--muted);font-family:var(--mono);font-size:.9rem}
   footer{padding:16px;text-align:center;color:var(--muted);font-size:.75rem}
 </style>
 </head>
@@ -103,25 +139,22 @@
       <input id="yearInput" type="number" min="1900" max="2100" placeholder="Année">
       <button>Rechercher</button>
     </form>
-    <button class="secondary admin" id="trailersBtn">🎞️ Bandes-annonces</button>
+    <button class="secondary admin" id="updateBtn">🔄 Mettre à jour</button>
     <button class="secondary admin" id="keyBtn">⚙️ Clé API</button>
     <button class="secondary" id="logoutBtn">🚪 Déconnexion</button>
   </header>
 
   <main>
-    <section id="resultsSection" hidden>
-      <h2 style="margin-bottom:12px">Résultats de recherche <button class="secondary" id="closeResults">✕ Fermer</button></h2>
-      <div class="grid" id="results"></div>
+    <section id="resultsSection" hidden style="margin-bottom:32px">
+      <div class="results-head">
+        <h2>Résultats TMDB</h2>
+        <button class="secondary" id="closeResults">✕ Fermer</button>
+      </div>
+      <div class="grid6" id="results"></div>
     </section>
 
     <div class="toolbar">
       <input id="filterText" type="search" placeholder="🔎 Rechercher...">
-      <select id="sortBy">
-        <option value="recent">Ajout récent</option>
-        <option value="title">Titre A → Z</option>
-        <option value="new">Année (récent)</option>
-        <option value="old">Année (ancien)</option>
-      </select>
     </div>
     <div id="collection"></div>
   </main>
@@ -195,23 +228,32 @@ const fb = initializeApp(firebaseConfig);
 const auth = getAuth(fb);
 const db = getFirestore(fb);
 
-const IMG = 'https://image.tmdb.org/t/p/w342';
+const IMG = 'https://image.tmdb.org/t/p/w500';
 const NO_IMG = 'data:image/svg+xml,' + encodeURIComponent(
-  '<svg xmlns="http://www.w3.org/2000/svg" width="200" height="300"><rect width="100%" height="100%" fill="#2a2e36"/><text x="50%" y="50%" fill="#777" font-size="20" text-anchor="middle">Pas d\'image</text></svg>');
+  '<svg xmlns="http://www.w3.org/2000/svg" width="200" height="300"><rect width="100%" height="100%" fill="#1b1d22"/><text x="50%" y="50%" fill="#777" font-size="20" text-anchor="middle">Pas d\'image</text></svg>');
+
+// Genres TMDB (films + séries) en français
+const GENRES = {28:'Action',12:'Aventure',16:'Animation',35:'Comédie',80:'Crime',99:'Documentaire',18:'Drame',
+  10751:'Familial',14:'Fantastique',36:'Histoire',27:'Horreur',10402:'Musique',9648:'Mystère',10749:'Romance',
+  878:'Science-Fiction',10770:'Téléfilm',53:'Thriller',10752:'Guerre',37:'Western',
+  10759:'Action & Aventure',10762:'Enfants',10763:'Actualités',10764:'Téléréalité',
+  10765:'Science-Fiction & Fantastique',10766:'Feuilleton',10767:'Talk-show',10768:'Guerre & Politique'};
 
 const $ = id => document.getElementById(id);
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c =>
   ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const poster = f => f.poster_path ? IMG + f.poster_path : NO_IMG;
 const year = f => (f.release_date || '').slice(0, 4);
-const badge = f => f.type === 'tv' ? '<span class="badge">Série</span>' : '';
+const typeOf = f => f.type === 'tv' ? 'tv' : 'movie';
 const plain = s => String(s || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim();
 
 const norm = (r, type) => ({
   id: r.id, type,
   title: r.title || r.name,
   poster_path: r.poster_path || null,
-  release_date: r.release_date || r.first_air_date || ''
+  release_date: r.release_date || r.first_air_date || '',
+  vote: r.vote_average || 0,
+  genres: (r.genre_ids || []).map(id => GENRES[id]).filter(Boolean).slice(0, 2)
 });
 
 const ytKey = s => {
@@ -222,8 +264,8 @@ const ytKey = s => {
   return m ? m[1] : null;
 };
 
-const LIMIT = 6;                              // nombre de titres affichés avant "Voir tout"
-const expanded = { movie: false, tv: false }; // sections ouvertes en entier
+const LIMIT = 6;
+const expanded = { movie: false, tv: false };
 
 let apiKey = localStorage.getItem('tmdbKey') || '';
 let films = [], lastResults = [], isAdmin = false, unsub = null;
@@ -328,21 +370,30 @@ $('searchForm').onsubmit = async e => {
   } catch (err) { alert(err.message); }
 };
 
-const isOwned = r => films.some(x => (x.type || 'movie') === r.type && x.id === r.id);
+const isOwned = r => films.some(x => typeOf(x) === r.type && x.id === r.id);
+
+// ---------- Morceaux de carte ----------
+const tagHTML = f => `<span class="tag">${typeOf(f) === 'tv' ? 'Série' : 'Film'}</span>`;
+const ratingHTML = f => f.vote ? `<span class="rating">⭐ TMDB ${Number(f.vote).toFixed(1)}/10</span>` : '';
+const headHTML = f => `
+  <div class="head">
+    <div class="title">${esc(f.title)}</div>
+    <div class="year">${year(f)}</div>
+  </div>
+  ${f.genres?.length ? `<div class="genres">${f.genres.map(esc).join(' · ')}</div>` : ''}`;
 
 function renderResults() {
   $('resultsSection').hidden = false;
   $('results').innerHTML = lastResults.length ? lastResults.map((f, i) => {
     const owned = isOwned(f);
     return `<div class="card">
-      <img src="${poster(f)}" alt="${esc(f.title)}" loading="lazy">
-      <div class="info">
-        <div class="title">${esc(f.title)}${badge(f)}</div>
-        <div class="year">${year(f)}</div>
-        <div class="actions">
-          <button data-add="${i}" ${owned ? 'disabled' : ''}>${owned ? '✓ Ajouté' : '+ Ajouter'}</button>
-        </div>
-      </div></div>`;
+      <div class="poster"><img src="${poster(f)}" alt="${esc(f.title)}" loading="lazy">${tagHTML(f)}${ratingHTML(f)}</div>
+      ${headHTML(f)}
+      <div class="sep"></div>
+      <div class="actions">
+        <button data-add="${i}" ${owned ? 'disabled' : ''}>${owned ? '✓ Ajouté' : '+ Ajouter'}</button>
+      </div>
+    </div>`;
   }).join('') : '<p class="empty">Aucun résultat. Essaie sans l\'année, avec le titre original, ou change Films/Séries.</p>';
 }
 
@@ -357,30 +408,32 @@ $('results').onclick = async e => {
 };
 $('closeResults').onclick = () => $('resultsSection').hidden = true;
 
-// ---------- Collection : recherche, tri, sections ----------
-$('sortBy').value = localStorage.getItem('sortBy') || 'recent';
-
-const sorters = {
-  recent: (a, b) => (b.addedAt || 0) - (a.addedAt || 0),
-  title:  (a, b) => String(a.title).localeCompare(String(b.title), 'fr', { sensitivity: 'base' }),
-  new:    (a, b) => (b.release_date || '').localeCompare(a.release_date || ''),
-  old:    (a, b) => (a.release_date || '9999').localeCompare(b.release_date || '9999')
-};
-
+// ---------- Collection ----------
 function cardHTML(f) {
-  const img = `<img src="${poster(f)}" alt="${esc(f.title)}" loading="lazy">`;
+  const inner = `<img src="${poster(f)}" alt="${esc(f.title)}" loading="lazy">${tagHTML(f)}${ratingHTML(f)}`;
   return `<div class="card">
-    ${f.link ? `<a href="${esc(f.link)}" target="_blank" rel="noopener">${img}</a>` : img}
-    <div class="info">
-      <div class="title">${esc(f.title)}</div>
-      <div class="year">${year(f)}</div>
+    ${f.link ? `<a class="poster" href="${esc(f.link)}" target="_blank" rel="noopener">${inner}</a>`
+             : `<div class="poster">${inner}</div>`}
+    ${headHTML(f)}
+    <div class="sep"></div>
+    <div class="extras">
       ${f.trailer ? `<button class="secondary trailerBtn" data-trailer="${esc(f.trailer)}">▶ Bande-annonce</button>` : ''}
       ${f.link ? `<a class="link" href="${esc(f.link)}" target="_blank" rel="noopener">🔗 ${esc(f.label || 'Ouvrir le lien')}</a>` : ''}
       ${isAdmin ? `<div class="actions">
         <button class="secondary" data-edit="${esc(f.key)}">✏️ Modifier</button>
         <button class="danger" data-del="${esc(f.key)}">🗑️</button>
       </div>` : ''}
-    </div></div>`;
+    </div>
+  </div>`;
+}
+
+function sectionTitle(type, count, open, searching) {
+  const tv = type === 'tv';
+  if (searching) return tv ? `Séries (${count})` : `Films (${count})`;
+  if (open) return tv ? 'Toutes les séries' : 'Tous les films';
+  const n = Math.min(LIMIT, count);
+  if (n <= 1) return tv ? 'La dernière série' : 'Le dernier film';
+  return tv ? `Les ${n} dernières séries` : `Les ${n} derniers films`;
 }
 
 function renderCollection() {
@@ -389,28 +442,27 @@ function renderCollection() {
     return;
   }
   const q = plain($('filterText').value);
+  // Toujours les derniers ajouts en premier
   const list = films.filter(f => !q || plain(f.title).includes(q))
-                    .sort(sorters[$('sortBy').value] || sorters.recent);
+                    .sort((a, b) => (b.addedAt || 0) - (a.addedAt || 0));
 
   const groups = [
-    { type: 'movie', title: '🎬 Films',  items: list.filter(f => (f.type || 'movie') === 'movie') },
-    { type: 'tv',    title: '📺 Séries', items: list.filter(f => f.type === 'tv') }
+    { type: 'movie', items: list.filter(f => typeOf(f) === 'movie') },
+    { type: 'tv',    items: list.filter(f => typeOf(f) === 'tv') }
   ];
 
   const html = groups.map(g => {
-    if (q && !g.items.length) return '';            // en recherche : on cache les sections vides
-    const open = expanded[g.type] || !!q;           // en recherche : tout est affiché
+    if (!g.items.length) return q ? '' : '';
+    const open = expanded[g.type] || !!q;
     const shown = open ? g.items : g.items.slice(0, LIMIT);
-    const toggle = !q && g.items.length > LIMIT
-      ? `<button class="seeAll" data-toggle="${g.type}">${expanded[g.type] ? 'Voir moins ↑' : `Voir tout (${g.items.length}) →`}</button>`
-      : '';
+    const toggle = q ? '' :
+      `<button class="seeAll" data-toggle="${g.type}">${expanded[g.type] ? 'Voir moins ↑' : 'Voir tout →'}</button>`;
     return `<section class="group" id="group-${g.type}">
       <div class="section-head">
-        <h2>${g.title} <span class="count">${g.items.length}</span></h2>
+        <h2 class="sec-title">${sectionTitle(g.type, g.items.length, expanded[g.type], !!q)}</h2>
         ${toggle}
       </div>
-      ${shown.length ? `<div class="grid6">${shown.map(cardHTML).join('')}</div>`
-                     : '<p class="empty">Rien pour l\'instant.</p>'}
+      <div class="grid6">${shown.map(cardHTML).join('')}</div>
     </section>`;
   }).join('');
 
@@ -418,7 +470,6 @@ function renderCollection() {
 }
 
 $('filterText').oninput = renderCollection;
-$('sortBy').onchange = () => { localStorage.setItem('sortBy', $('sortBy').value); renderCollection(); };
 
 $('collection').onclick = async e => {
   const btn = e.target.closest('button');
@@ -427,13 +478,13 @@ $('collection').onclick = async e => {
   if (toggle) {
     expanded[toggle] = !expanded[toggle];
     renderCollection();
-    if (!expanded[toggle]) $('group-' + toggle)?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    $('group-' + toggle)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
     return;
   }
   if (trailer) return playTrailer(trailer);
   if (edit) {
     const item = { ...films.find(f => f.key === edit) };
-    if (!item.trailer) { btn.textContent = '⏳'; item.trailer = await findTrailer(item.type || 'movie', item.id); }
+    if (!item.trailer) { btn.textContent = '⏳'; item.trailer = await findTrailer(typeOf(item), item.id); }
     openLinkDialog(item, false);
   }
   if (del && confirm('Supprimer ?')) {
@@ -451,24 +502,32 @@ $('closeTrailer').onclick = () => $('trailerDialog').close();
 $('trailerDialog').addEventListener('close', () => $('player').src = '');
 $('trailerDialog').onclick = e => { if (e.target === $('trailerDialog')) $('trailerDialog').close(); };
 
-// ---------- Bandes-annonces pour la collection existante ----------
-$('trailersBtn').onclick = async () => {
+// ---------- Mettre à jour : note, genres, bande-annonce des anciens titres ----------
+$('updateBtn').onclick = async () => {
   if (!apiKey) return openKeyDialog();
-  const todo = films.filter(f => !f.trailer);
-  if (!todo.length) return alert('Tout a déjà une bande-annonce 👍');
-  const btn = $('trailersBtn');
+  const todo = films.filter(f => !f.trailer || !f.genres || f.vote == null);
+  if (!todo.length) return alert('Tout est déjà à jour 👍');
+  const btn = $('updateBtn');
   btn.disabled = true;
-  let found = 0;
+  let done = 0;
   for (const [i, f] of todo.entries()) {
     btn.textContent = `⏳ ${i + 1}/${todo.length}`;
-    const t = await findTrailer(f.type || 'movie', f.id);
-    if (t) {
-      try { await setDoc(doc(db, 'films', f.key), { trailer: t }, { merge: true }); found++; } catch {}
+    const type = typeOf(f);
+    const patch = { type };
+    try {
+      const d = await tmdb(`/${type}/${f.id}`, { language: 'fr-FR' });
+      patch.vote = d.vote_average || 0;
+      patch.genres = (d.genres || []).slice(0, 2).map(g => g.name);
+    } catch {}
+    if (!f.trailer) {
+      const t = await findTrailer(type, f.id);
+      if (t) patch.trailer = t;
     }
+    try { await setDoc(doc(db, 'films', f.key), patch, { merge: true }); done++; } catch {}
   }
   btn.disabled = false;
-  btn.textContent = '🎞️ Bandes-annonces';
-  alert(`${found} bande(s)-annonce(s) ajoutée(s) sur ${todo.length}.`);
+  btn.textContent = '🔄 Mettre à jour';
+  alert(`${done} titre(s) mis à jour sur ${todo.length}.`);
 };
 
 // ---------- Fenêtre lien ----------
