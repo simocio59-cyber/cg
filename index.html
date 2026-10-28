@@ -12,6 +12,7 @@
   .hidden{display:none!important}
   input,button,select{font:inherit;border-radius:8px;border:1px solid #333;padding:8px 12px;background:#20242c;color:var(--txt)}
   button{cursor:pointer;background:var(--accent);border:none;color:#000;font-weight:600}
+  button:disabled{opacity:.6;cursor:default}
   button.secondary{background:#2c313a;color:var(--txt)}
   button.danger{background:var(--danger);color:#fff}
   .login{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px}
@@ -35,14 +36,17 @@
   .title{font-weight:600;font-size:.9rem}
   .year{color:var(--muted);font-size:.8rem}
   .badge{font-size:.7rem;background:#2c313a;color:var(--accent);padding:2px 6px;border-radius:6px;margin-left:4px}
+  .trailerBtn{padding:6px;font-size:.8rem}
   .actions{display:flex;gap:6px;margin-top:auto}
   .actions button{flex:1;padding:6px;font-size:.8rem}
   .link{font-size:.85rem;color:var(--accent);text-decoration:none}
   .link:hover{text-decoration:underline}
   dialog{background:var(--card);color:var(--txt);border:none;border-radius:12px;padding:20px;width:min(420px,90vw)}
-  dialog::backdrop{background:rgba(0,0,0,.6)}
+  dialog::backdrop{background:rgba(0,0,0,.75)}
   dialog form{display:flex;flex-direction:column;gap:12px}
   dialog label{display:flex;flex-direction:column;gap:4px;font-size:.9rem}
+  #trailerDialog{width:min(900px,95vw);padding:12px}
+  .video{width:100%;aspect-ratio:16/9;border:0;border-radius:8px;display:block;background:#000}
   .row{display:flex;gap:8px;justify-content:flex-end}
   .empty{color:var(--muted)}
   footer{padding:16px;text-align:center;color:var(--muted);font-size:.75rem}
@@ -86,6 +90,7 @@
       <input id="yearInput" type="number" min="1900" max="2100" placeholder="Année">
       <button>Rechercher</button>
     </form>
+    <button class="secondary admin" id="trailersBtn">🎞️ Bandes-annonces</button>
     <button class="secondary admin" id="keyBtn">⚙️ Clé API</button>
     <button class="secondary" id="logoutBtn">🚪 Déconnexion</button>
   </header>
@@ -112,13 +117,26 @@
       <input id="linkUrl" type="url" placeholder="https://...">
     </label>
     <label>Texte du lien (optionnel)
-      <input id="linkLabel" placeholder="Bande-annonce, Netflix, critique...">
+      <input id="linkLabel" placeholder="Netflix, critique...">
+    </label>
+    <label>Bande-annonce YouTube (trouvée automatiquement, modifiable)
+      <input id="trailerUrl" placeholder="https://www.youtube.com/watch?v=...">
     </label>
     <div class="row">
       <button type="button" class="secondary" id="cancelLink">Annuler</button>
       <button>Enregistrer</button>
     </div>
   </form>
+</dialog>
+
+<!-- Fenêtre : bande-annonce -->
+<dialog id="trailerDialog">
+  <iframe id="player" class="video" title="Bande-annonce"
+    allow="autoplay; encrypted-media; picture-in-picture; fullscreen"
+    referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
+  <div class="row" style="margin-top:10px">
+    <button class="secondary" id="closeTrailer">✕ Fermer</button>
+  </div>
 </dialog>
 
 <!-- Fenêtre : clé API -->
@@ -168,13 +186,21 @@ const poster = f => f.poster_path ? IMG + f.poster_path : NO_IMG;
 const year = f => (f.release_date || '').slice(0, 4);
 const badge = f => f.type === 'tv' ? '<span class="badge">Série</span>' : '';
 
-// Met films et séries au même format
 const norm = (r, type) => ({
   id: r.id, type,
   title: r.title || r.name,
   poster_path: r.poster_path || null,
   release_date: r.release_date || r.first_air_date || ''
 });
+
+// Extrait l'identifiant d'une vidéo YouTube ('' = vide, null = invalide)
+const ytKey = s => {
+  s = (s || '').trim();
+  if (!s) return '';
+  if (/^[\w-]{11}$/.test(s)) return s;
+  const m = s.match(/(?:v=|youtu\.be\/|embed\/|shorts\/)([\w-]{11})/);
+  return m ? m[1] : null;
+};
 
 let apiKey = localStorage.getItem('tmdbKey') || '';
 let films = [], lastResults = [], isAdmin = false, unsub = null;
@@ -240,6 +266,23 @@ async function tmdb(path, params = {}) {
   return r.json();
 }
 
+// Cherche la bande-annonce : d'abord en français, sinon en anglais
+async function findTrailer(type, id) {
+  if (!apiKey) return '';
+  for (const lang of ['fr-FR', 'en-US']) {
+    try {
+      const vids = (await tmdb(`/${type}/${id}/videos`, { language: lang })).results
+        .filter(v => v.site === 'YouTube');
+      const pick = vids.find(v => v.type === 'Trailer' && v.official)
+                || vids.find(v => v.type === 'Trailer')
+                || vids.find(v => v.type === 'Teaser')
+                || vids[0];
+      if (pick) return pick.key;
+    } catch {}
+  }
+  return '';
+}
+
 $('searchForm').onsubmit = async e => {
   e.preventDefault();
   if (!apiKey) return openKeyDialog();
@@ -281,11 +324,14 @@ function renderResults() {
   }).join('') : '<p class="empty">Aucun résultat. Essaie sans l\'année, avec le titre original, ou change Films/Séries.</p>';
 }
 
-$('results').onclick = e => {
-  const i = e.target.dataset.add;
-  if (i === undefined) return;
-  const f = lastResults[i];
-  openLinkDialog({ ...f, key: `${f.type}-${f.id}`, link: '', label: '' }, true);
+$('results').onclick = async e => {
+  const btn = e.target.closest('button[data-add]');
+  if (!btn) return;
+  const f = lastResults[btn.dataset.add];
+  btn.disabled = true; btn.textContent = '⏳ ...';
+  const trailer = await findTrailer(f.type, f.id);
+  btn.disabled = false; btn.textContent = '+ Ajouter';
+  openLinkDialog({ ...f, key: `${f.type}-${f.id}`, link: '', label: '', trailer }, true);
 };
 $('closeResults').onclick = () => $('resultsSection').hidden = true;
 
@@ -298,9 +344,10 @@ function renderCollection() {
       <div class="info">
         <div class="title">${esc(f.title)}${badge(f)}</div>
         <div class="year">${year(f)}</div>
+        ${f.trailer ? `<button class="secondary trailerBtn" data-trailer="${esc(f.trailer)}">▶ Bande-annonce</button>` : ''}
         ${f.link ? `<a class="link" href="${esc(f.link)}" target="_blank" rel="noopener">🔗 ${esc(f.label || 'Ouvrir le lien')}</a>` : ''}
         ${isAdmin ? `<div class="actions">
-          <button class="secondary" data-edit="${esc(f.key)}">✏️ Lien</button>
+          <button class="secondary" data-edit="${esc(f.key)}">✏️ Modifier</button>
           <button class="danger" data-del="${esc(f.key)}">🗑️</button>
         </div>` : ''}
       </div></div>`;
@@ -308,12 +355,48 @@ function renderCollection() {
 }
 
 $('collection').onclick = async e => {
-  const { edit, del } = e.target.dataset;
-  if (edit) openLinkDialog({ ...films.find(f => f.key === edit) }, false);
+  const btn = e.target.closest('button');
+  if (!btn) return;
+  const { edit, del, trailer } = btn.dataset;
+  if (trailer) return playTrailer(trailer);
+  if (edit) {
+    const item = { ...films.find(f => f.key === edit) };
+    if (!item.trailer) { btn.textContent = '⏳'; item.trailer = await findTrailer(item.type || 'movie', item.id); }
+    openLinkDialog(item, false);
+  }
   if (del && confirm('Supprimer ?')) {
     try { await deleteDoc(doc(db, 'films', del)); }
     catch { alert('Suppression impossible.'); }
   }
+};
+
+// ---------- Lecteur bande-annonce ----------
+function playTrailer(k) {
+  $('player').src = `https://www.youtube-nocookie.com/embed/${encodeURIComponent(k)}?autoplay=1&rel=0`;
+  $('trailerDialog').showModal();
+}
+$('closeTrailer').onclick = () => $('trailerDialog').close();
+$('trailerDialog').addEventListener('close', () => $('player').src = '');   // coupe le son
+$('trailerDialog').onclick = e => { if (e.target === $('trailerDialog')) $('trailerDialog').close(); };
+
+// ---------- Bandes-annonces pour la collection existante ----------
+$('trailersBtn').onclick = async () => {
+  if (!apiKey) return openKeyDialog();
+  const todo = films.filter(f => !f.trailer);
+  if (!todo.length) return alert('Tout a déjà une bande-annonce 👍');
+  const btn = $('trailersBtn');
+  btn.disabled = true;
+  let found = 0;
+  for (const [i, f] of todo.entries()) {
+    btn.textContent = `⏳ ${i + 1}/${todo.length}`;
+    const t = await findTrailer(f.type || 'movie', f.id);
+    if (t) {
+      try { await setDoc(doc(db, 'films', f.key), { trailer: t }, { merge: true }); found++; } catch {}
+    }
+  }
+  btn.disabled = false;
+  btn.textContent = '🎞️ Bandes-annonces';
+  alert(`${found} bande(s)-annonce(s) ajoutée(s) sur ${todo.length}.`);
 };
 
 // ---------- Fenêtre lien ----------
@@ -322,6 +405,7 @@ function openLinkDialog(item, newItem) {
   $('dlgTitle').textContent = item.title;
   $('linkUrl').value = item.link || '';
   $('linkLabel').value = item.label || '';
+  $('trailerUrl').value = item.trailer ? 'https://www.youtube.com/watch?v=' + item.trailer : '';
   $('linkDialog').showModal();
 }
 
@@ -329,8 +413,11 @@ $('linkForm').onsubmit = async e => {
   e.preventDefault();
   const url = $('linkUrl').value.trim();
   if (url && !/^https?:\/\//i.test(url)) return alert('Le lien doit commencer par http:// ou https://');
+  const t = ytKey($('trailerUrl').value);
+  if (t === null) return alert('Lien YouTube de la bande-annonce invalide.');
   current.link = url;
   current.label = $('linkLabel').value.trim();
+  current.trailer = t;
   if (isNew) current.addedAt = Date.now();
   const { key, ...data } = current;
   try {
