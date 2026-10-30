@@ -2,572 +2,746 @@
 <html lang="fr">
 <head>
 <meta charset="UTF-8">
-<meta name="robots" content="noindex, nofollow">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Ma Vidéothèque</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Vidéothèque</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
 <style>
-  :root{--bg:#050506;--card:#16181d;--txt:#f2f2f2;--muted:#8d9096;--line:#26282d;--accent:#01b4e4;--danger:#e5484d;
-        --display:'Archivo Black',system-ui,sans-serif;--mono:'JetBrains Mono',ui-monospace,monospace}
-  *{box-sizing:border-box}
-  body{margin:0;font-family:system-ui,sans-serif;background:var(--bg);color:var(--txt)}
-  .hidden{display:none!important}
-  input,button,select{font:inherit;border-radius:8px;border:1px solid #333;padding:8px 12px;background:#1b1d22;color:var(--txt)}
-  button{cursor:pointer;background:var(--accent);border:none;color:#000;font-weight:600}
-  button:disabled{opacity:.6;cursor:default}
-  button.secondary{background:#2a2d34;color:var(--txt)}
-  button.danger{background:var(--danger);color:#fff}
+:root{--bg:#000;--panel:#0f0f0f;--line:#252525;--txt:#f2f2f2;--mut:#9a9a9a;--ok:#3ddc84;--bad:#ff5c5c}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--txt);font-family:'JetBrains Mono',monospace;font-size:14px}
+h1,h2,h3,.t{font-family:'Archivo Black',sans-serif;text-transform:uppercase;letter-spacing:.4px;margin:0}
+button,input,select,textarea{font-family:inherit;font-size:13px}
+button{cursor:pointer;background:#1a1a1a;color:var(--txt);border:1px solid #333;border-radius:6px;padding:7px 11px}
+button:hover{border-color:#777}
+button:disabled{opacity:.5;cursor:default}
+.primary{background:var(--txt);color:#000;border-color:var(--txt);font-weight:700}
+input,select,textarea{background:#0d0d0d;color:var(--txt);border:1px solid #333;border-radius:6px;padding:8px 10px}
+input:focus,select:focus,textarea:focus{outline:none;border-color:#888}
+.hidden{display:none!important}
+body:not(.isAdmin) .adminOnly{display:none!important}
+.wrap{max-width:1400px;margin:0 auto;padding:0 20px}
+.meta{color:var(--mut);font-size:11px}
+.empty{color:var(--mut);padding:10px 0}
+.grid6 .empty{grid-column:1/-1}
 
-  /* Connexion */
-  .login{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px}
-  .box{background:var(--card);padding:28px;border-radius:14px;width:min(360px,100%);display:flex;flex-direction:column;gap:16px}
-  .box h1{margin:0;text-align:center;font-size:1.4rem;font-family:var(--display);text-transform:uppercase}
-  .box form{display:flex;flex-direction:column;gap:10px}
-  .box label{display:flex;flex-direction:column;gap:4px;font-size:.9rem}
-  details summary{cursor:pointer;color:var(--muted);font-size:.85rem;margin-bottom:10px}
-  .error{color:var(--danger);text-align:center;min-height:1.2em;margin:0;font-size:.9rem}
+/* Connexion */
+#loginScreen{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px}
+.loginBox{width:100%;max-width:360px;display:flex;flex-direction:column;gap:12px;text-align:center}
+.loginBox h1{font-size:30px}
+.loginBox p{color:var(--mut);margin:0}
+#adminBox{margin-top:14px;text-align:left;border-top:1px solid var(--line);padding-top:12px}
+#adminBox summary{cursor:pointer;color:var(--mut)}
+#adminBox .col{display:flex;flex-direction:column;gap:8px;margin-top:10px}
+.err{color:var(--bad);min-height:18px;font-size:12px}
 
-  /* En-tête */
-  header{padding:14px 24px;background:#000;border-bottom:1px solid var(--line);display:flex;gap:10px;align-items:center;flex-wrap:wrap;position:sticky;top:0;z-index:10}
-  header h1{font-size:1.2rem;margin:0 auto 0 0;font-family:var(--display);text-transform:uppercase}
-  #searchForm{display:flex;gap:8px;flex-wrap:wrap}
-  #yearInput{width:90px}
-  main{padding:24px 40px}
+/* En-tête */
+header{position:sticky;top:0;z-index:5;background:rgba(0,0,0,.92);backdrop-filter:blur(6px);border-bottom:1px solid var(--line)}
+.bar{display:flex;flex-wrap:wrap;align-items:center;gap:10px;padding-top:12px;padding-bottom:12px}
+.bar h1{font-size:22px;margin-right:6px}
+.badge{display:inline-block;min-width:18px;padding:1px 6px;border-radius:10px;background:var(--bad);color:#fff;font-size:11px;margin-left:4px}
+.spacer{flex:1}
+.search{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.search input[type=text]{width:220px}
+.search .year{width:84px}
 
-  /* Petite barre de recherche à gauche */
-  .toolbar{margin-bottom:8px}
-  #filterText{width:240px;max-width:100%;padding:7px 12px;font-size:.9rem;font-family:var(--mono)}
+main{padding:16px 0 40px}
+.toolbar{margin:8px 0 4px}
+#filterText{width:240px}
+.secHead{display:flex;justify-content:space-between;align-items:baseline;gap:10px;margin:26px 0 14px}
+.secHead h2{font-size:20px}
+.seeAll{background:none;border:none;padding:0;color:var(--txt);text-decoration:underline;text-transform:uppercase;font-weight:700;letter-spacing:.5px;white-space:nowrap}
 
-  /* Sections */
-  .group{margin-bottom:40px}
-  .section-head{display:flex;align-items:center;justify-content:space-between;gap:16px;
-                border-top:1px solid var(--line);padding-top:28px;margin-bottom:24px}
-  .sec-title{font-family:var(--display);text-transform:uppercase;font-size:clamp(1.3rem,3.5vw,2.1rem);
-             margin:0;line-height:1.1;color:#fff}
-  .seeAll{margin-left:auto;flex-shrink:0;background:none;border:none;border-bottom:2px solid #fff;border-radius:0;
-          color:#fff;font-family:var(--mono);font-weight:500;text-transform:uppercase;letter-spacing:.2em;
-          padding:2px 0;font-size:.95rem;white-space:nowrap}
-  .seeAll:hover{color:var(--accent);border-color:var(--accent)}
+/* Grille + cartes */
+.grid6{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:18px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:10px;overflow:hidden;display:flex;flex-direction:column}
+.poster{position:relative;aspect-ratio:2/3;background:#1a1a1a}
+.poster img{width:100%;height:100%;object-fit:cover;display:block}
+.noimg{height:100%;display:flex;align-items:center;justify-content:center;text-align:center;padding:10px;color:var(--mut);font-size:12px}
+.tag{position:absolute;top:8px;left:8px;background:#000;border:1px solid #fff;font-size:10px;font-weight:700;letter-spacing:1px;padding:2px 6px;border-radius:4px}
+.vote{position:absolute;bottom:8px;right:8px;background:rgba(0,0,0,.85);font-size:11px;padding:3px 6px;border-radius:4px}
+.info{padding:10px;display:flex;flex-direction:column;gap:6px;flex:1}
+.tl{display:flex;justify-content:space-between;align-items:baseline;gap:8px}
+.tl .t{font-size:13px;line-height:1.25;overflow-wrap:anywhere}
+.tl .y{color:var(--mut);font-size:12px;flex-shrink:0}
+.genres{color:var(--mut);font-size:11px}
+.sep{width:100%;border:none;border-top:1px solid var(--line);margin:4px 0}
+.actions{display:flex;flex-wrap:wrap;gap:6px;margin-top:auto}
+.actions button,.actions a{font-size:11px;padding:5px 8px}
+.actions a{color:var(--txt);background:#1a1a1a;border:1px solid #333;border-radius:6px;text-decoration:none;overflow-wrap:anywhere}
+.actions a:hover{border-color:#777}
 
-  /* Grille : 6 par ligne sur PC, 3 sur tablette, 2 sur téléphone */
-  .grid6{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:22px}
-  @media (max-width:1000px){.grid6{grid-template-columns:repeat(3,minmax(0,1fr))}}
-  @media (max-width:700px){
-    main{padding:16px}
-    .grid6{grid-template-columns:repeat(2,minmax(0,1fr));gap:18px}
-    .seeAll{font-size:.85rem;letter-spacing:.15em}
-  }
+/* Fenêtres */
+dialog{background:#111;color:var(--txt);border:1px solid #333;border-radius:12px;padding:18px;width:min(520px,92vw)}
+dialog::backdrop{background:rgba(0,0,0,.75)}
+dialog h3{font-size:16px;margin-bottom:10px}
+dialog label{display:block;font-size:12px;color:var(--mut);margin:10px 0 4px}
+dialog input,dialog textarea{width:100%}
+dialog textarea{min-height:80px;resize:vertical}
+.dlgBtns{display:flex;justify-content:flex-end;gap:8px;margin-top:16px}
+#trailerDialog{width:min(960px,96vw);padding:10px}
+.ratio{position:relative;aspect-ratio:16/9;background:#000}
+.ratio iframe{position:absolute;inset:0;width:100%;height:100%;border:0}
 
-  /* Carte */
-  .card{display:flex;flex-direction:column;min-width:0}
-  .poster{position:relative;border-radius:6px;overflow:hidden;background:#1b1d22;display:block;transition:transform .15s}
-  .poster:hover{transform:translateY(-3px)}
-  .poster img{width:100%;aspect-ratio:2/3;object-fit:cover;display:block}
-  .tag,.rating{position:absolute;font-family:var(--mono);text-transform:uppercase;letter-spacing:.12em;
-               border:1px solid rgba(255,255,255,.25);padding:4px 9px;font-size:.75rem;color:#fff}
-  .tag{top:10px;left:10px;background:rgba(25,22,5,.85)}
-  .rating{bottom:10px;right:10px;background:rgba(0,0,0,.85);letter-spacing:.05em}
-  .head{display:flex;justify-content:space-between;align-items:baseline;gap:8px;margin-top:12px}
-  .title{font-family:var(--display);text-transform:uppercase;font-size:1rem;line-height:1.2;overflow-wrap:anywhere}
-  .year{font-family:var(--mono);color:var(--muted);font-size:.85rem;flex-shrink:0}
-  .genres{font-family:var(--mono);color:var(--muted);text-transform:uppercase;letter-spacing:.14em;font-size:.72rem;margin-top:6px}
-  .sep{border-top:1px solid var(--line);margin:10px 0 8px}
-  .extras{display:flex;flex-direction:column;gap:6px}
-  .trailerBtn{padding:6px;font-size:.8rem}
-  .actions{display:flex;gap:6px}
-  .actions button{flex:1;padding:6px;font-size:.8rem}
-  .link{font-family:var(--mono);font-size:.8rem;color:var(--accent);text-decoration:none;overflow-wrap:anywhere}
-  .link:hover{text-decoration:underline}
-  @media (max-width:700px){
-    .title{font-size:.9rem}
-    .tag,.rating{font-size:.65rem;padding:3px 7px}
-  }
+/* Demandes */
+.askSearch{display:flex;gap:6px;margin-top:10px}
+.askSearch input{flex:1;min-width:0}
+.sugList{display:flex;flex-direction:column;gap:6px;margin-top:10px;max-height:300px;overflow-y:auto}
+.row{display:flex;gap:10px;align-items:center;text-align:left;width:100%;background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:6px}
+.row img,.row .ph{width:42px;aspect-ratio:2/3;object-fit:cover;border-radius:4px;background:#1a1a1a;flex-shrink:0}
+.row .body{flex:1;min-width:0;display:flex;flex-direction:column;gap:3px}
+.row .t{font-size:12px;overflow-wrap:anywhere}
+.chosen{border-color:var(--ok)}
+.owned{color:var(--ok)}
+.msg{white-space:pre-wrap;overflow-wrap:anywhere;font-size:12px;color:#ddd;border-left:2px solid #444;padding-left:8px}
+#inboxDialog{width:min(640px,94vw)}
+#inboxList{display:flex;flex-direction:column;gap:8px;max-height:65vh;overflow-y:auto}
+#inboxList .row{align-items:flex-start}
 
-  /* Résultats TMDB */
-  .results-head{display:flex;align-items:center;gap:10px;margin:0 0 16px}
-  .results-head h2{margin:0;font-family:var(--display);text-transform:uppercase;font-size:1.2rem}
+footer{border-top:1px solid var(--line);color:var(--mut);font-size:11px;text-align:center;padding:18px 20px}
+#toast{position:fixed;left:50%;bottom:20px;transform:translateX(-50%);background:#fff;color:#000;font-weight:700;padding:10px 16px;border-radius:8px;z-index:50;opacity:0;pointer-events:none;transition:opacity .2s}
+#toast.show{opacity:1}
 
-  /* Fenêtres */
-  dialog{background:var(--card);color:var(--txt);border:none;border-radius:12px;padding:20px;width:min(420px,90vw)}
-  dialog::backdrop{background:rgba(0,0,0,.75)}
-  dialog form{display:flex;flex-direction:column;gap:12px}
-  dialog label{display:flex;flex-direction:column;gap:4px;font-size:.9rem}
-  #trailerDialog{width:min(900px,95vw);padding:12px}
-  .video{width:100%;aspect-ratio:16/9;border:0;border-radius:8px;display:block;background:#000}
-  .row{display:flex;gap:8px;justify-content:flex-end}
-  .empty{color:var(--muted);font-family:var(--mono);font-size:.9rem}
-  footer{padding:16px;text-align:center;color:var(--muted);font-size:.75rem}
+@media (max-width:1000px){.grid6{grid-template-columns:repeat(3,minmax(0,1fr))}}
+@media (max-width:700px){
+  .grid6{grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+  .search{width:100%}
+  .search input[type=text],#filterText{width:100%}
+}
 </style>
 </head>
 <body>
 
-<!-- ===== Écran de connexion ===== -->
-<div id="loginScreen" class="login">
-  <div class="box">
-    <h1>🎬 Ma Vidéothèque</h1>
-    <form id="codeForm">
-      <label>Code d'accès
-        <input id="code" type="password" required autocomplete="off">
-      </label>
-      <button>Entrer</button>
-    </form>
-    <details id="adminBox">
+<!-- ===== CONNEXION ===== -->
+<section id="loginScreen">
+  <div class="loginBox">
+    <h1>Vidéothèque</h1>
+    <p>Entre le code d'accès</p>
+    <input id="guestCode" type="password" placeholder="Code d'accès">
+    <button id="guestBtn" class="primary">Entrer</button>
+    <div id="loginErr" class="err"></div>
+    <details id="adminBox" class="hidden">
       <summary>Connexion admin</summary>
-      <form id="adminForm">
-        <input id="email" type="email" placeholder="E-mail" required>
-        <input id="pwd" type="password" placeholder="Mot de passe" required>
-        <button>Se connecter</button>
-      </form>
+      <div class="col">
+        <input id="adminEmail" type="email" placeholder="E-mail" autocomplete="username">
+        <input id="adminPass" type="password" placeholder="Mot de passe" autocomplete="current-password">
+        <button id="adminBtn">Se connecter</button>
+      </div>
     </details>
-    <p id="loginError" class="error"></p>
   </div>
-</div>
+</section>
 
-<!-- ===== Site ===== -->
+<!-- ===== APPLICATION ===== -->
 <div id="app" class="hidden">
   <header>
-    <h1>🎬 Ma Vidéothèque</h1>
-    <form id="searchForm" class="admin">
-      <select id="type">
-        <option value="multi">Tout</option>
-        <option value="movie">Films</option>
-        <option value="tv">Séries</option>
-      </select>
-      <input id="query" placeholder="Ajouter depuis TMDB..." required>
-      <input id="yearInput" type="number" min="1900" max="2100" placeholder="Année">
-      <button>Rechercher</button>
-    </form>
-    <button class="secondary admin" id="updateBtn">🔄 Mettre à jour</button>
-    <button class="secondary admin" id="keyBtn">⚙️ Clé API</button>
-    <button class="secondary" id="logoutBtn">🚪 Déconnexion</button>
+    <div class="wrap bar">
+      <h1>Vidéothèque</h1>
+      <div class="spacer"></div>
+      <form id="tmdbForm" class="search adminOnly">
+        <select id="tmdbType">
+          <option value="all">Tout</option>
+          <option value="movie">Films</option>
+          <option value="tv">Séries</option>
+        </select>
+        <input id="tmdbQuery" type="text" placeholder="Ajouter un titre (TMDB)…">
+        <input id="tmdbYear" class="year" type="number" placeholder="Année" min="1900" max="2100">
+        <button type="submit">Chercher</button>
+      </form>
+      <button id="refreshBtn" class="adminOnly" title="Remplit note, genres et bande-annonce des anciens titres">🔄 Mettre à jour</button>
+      <button id="keyBtn" class="adminOnly">⚙️ Clé API</button>
+      <button id="inboxBtn" class="adminOnly">📬 Demandes<span id="reqBadge" class="badge hidden">0</span></button>
+      <button id="askBtn">📝 Demander</button>
+      <button id="logoutBtn">🚪 Déconnexion</button>
+    </div>
   </header>
 
-  <main>
-    <section id="resultsSection" hidden style="margin-bottom:32px">
-      <div class="results-head">
-        <h2>Résultats TMDB</h2>
-        <button class="secondary" id="closeResults">✕ Fermer</button>
-      </div>
-      <div class="grid6" id="results"></div>
-    </section>
-
+  <main class="wrap">
+    <div id="tmdbBox" class="hidden">
+      <div class="secHead"><h2>Résultats TMDB</h2><button class="seeAll" id="closeResults">Fermer ✕</button></div>
+      <div id="tmdbResults" class="grid6"></div>
+    </div>
     <div class="toolbar">
-      <input id="filterText" type="search" placeholder="🔎 Rechercher...">
+      <input id="filterText" type="search" placeholder="🔍 Rechercher…">
     </div>
     <div id="collection"></div>
   </main>
 
-  <footer>Ce site utilise l'API TMDB mais n'est ni approuvé ni certifié par TMDB.</footer>
+  <footer>Données et affiches : TMDB. Ce site utilise l'API TMDB mais n'est ni approuvé ni certifié par TMDB.</footer>
 </div>
 
-<!-- Fenêtre : lien -->
+<!-- ===== FENÊTRE AJOUT / MODIFICATION (admin) ===== -->
 <dialog id="linkDialog">
-  <form id="linkForm">
-    <h3 id="dlgTitle" style="margin:0"></h3>
-    <label>Lien (URL)
-      <input id="linkUrl" type="url" placeholder="https://...">
-    </label>
-    <label>Texte du lien (optionnel)
-      <input id="linkLabel" placeholder="Netflix, critique...">
-    </label>
-    <label>Bande-annonce YouTube (trouvée automatiquement, modifiable)
-      <input id="trailerUrl" placeholder="https://www.youtube.com/watch?v=...">
-    </label>
-    <div class="row">
-      <button type="button" class="secondary" id="cancelLink">Annuler</button>
-      <button>Enregistrer</button>
-    </div>
-  </form>
-</dialog>
-
-<!-- Fenêtre : bande-annonce -->
-<dialog id="trailerDialog">
-  <iframe id="player" class="video" title="Bande-annonce"
-    allow="autoplay; encrypted-media; picture-in-picture; fullscreen"
-    referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
-  <div class="row" style="margin-top:10px">
-    <button class="secondary" id="closeTrailer">✕ Fermer</button>
+  <h3 id="linkTitle">Ajouter</h3>
+  <label for="fLink">Lien (URL)</label>
+  <input id="fLink" type="url" placeholder="https://…">
+  <label for="fLabel">Texte du lien</label>
+  <input id="fLabel" type="text" placeholder="Ex : Regarder sur Netflix">
+  <label for="fTrailer">Bande-annonce YouTube (clé ou lien)</label>
+  <input id="fTrailer" type="text" placeholder="Ex : https://youtu.be/…">
+  <div class="dlgBtns">
+    <button type="button" data-close>Annuler</button>
+    <button type="button" id="saveFilm" class="primary">Enregistrer</button>
   </div>
 </dialog>
 
-<!-- Fenêtre : clé API -->
-<dialog id="keyDialog">
-  <form id="keyForm">
-    <h3 style="margin:0">Clé API TMDB</h3>
-    <label>Colle ta clé API (v3) ou ton jeton d'accès (v4)
-      <input id="keyInput" required>
-    </label>
-    <div class="row">
-      <button type="button" class="secondary" id="cancelKey">Annuler</button>
-      <button>Enregistrer</button>
-    </div>
+<!-- ===== FENÊTRE DEMANDE ===== -->
+<dialog id="askDialog">
+  <h3>📝 Demander un ajout</h3>
+  <div class="meta">Tape le titre, clique sur Chercher puis choisis le bon. Pas trouvé ? Envoie quand même : ton texte sera transmis.</div>
+  <form id="askForm" class="askSearch">
+    <select id="askType">
+      <option value="all">Tout</option>
+      <option value="movie">Films</option>
+      <option value="tv">Séries</option>
+    </select>
+    <input id="askQuery" type="text" maxlength="200" placeholder="Titre…">
+    <button type="submit">Chercher</button>
   </form>
+  <div id="askResults" class="sugList"></div>
+  <label for="askMsg">Message (facultatif)</label>
+  <textarea id="askMsg" maxlength="500" placeholder="Ton prénom, la saison voulue, la VF…"></textarea>
+  <div class="dlgBtns">
+    <button type="button" data-close>Annuler</button>
+    <button type="button" id="askSend" class="primary">Envoyer</button>
+  </div>
 </dialog>
+
+<!-- ===== FENÊTRE LISTE DES DEMANDES (admin) ===== -->
+<dialog id="inboxDialog">
+  <h3>📬 Demandes reçues</h3>
+  <div id="inboxList"></div>
+  <div class="dlgBtns"><button type="button" data-close>Fermer</button></div>
+</dialog>
+
+<!-- ===== FENÊTRE BANDE-ANNONCE ===== -->
+<dialog id="trailerDialog">
+  <div class="ratio"><iframe id="ytFrame" allow="autoplay; encrypted-media; picture-in-picture; fullscreen" allowfullscreen></iframe></div>
+  <div class="dlgBtns"><button type="button" data-close>Fermer ✕</button></div>
+</dialog>
+
+<div id="toast"></div>
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut }
-  from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-import { getFirestore, collection, doc, setDoc, deleteDoc, onSnapshot, query, orderBy }
-  from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+import { getFirestore, collection, doc, getDoc, setDoc, updateDoc, deleteDoc, addDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
+/* ⚠️⚠️ REMPLACE CE BLOC PAR CELUI DE TON ANCIEN FICHIER ⚠️⚠️ */
 const firebaseConfig = {
-  apiKey: "AIzaSyCSXTITQx3oLlVT16Kk2SeACi9_G2gYLo0",
+  apiKey: "COLLE_ICI",
   authDomain: "cgtl-9b100.firebaseapp.com",
   projectId: "cgtl-9b100",
-  storageBucket: "cgtl-9b100.firebasestorage.app",
-  messagingSenderId: "996683479796",
-  appId: "1:996683479796:web:cb66241265ccf93394fca1"
+  storageBucket: "cgtl-9b100.appspot.com",
+  messagingSenderId: "COLLE_ICI",
+  appId: "COLLE_ICI"
 };
+/* ⚠️⚠️ FIN DU BLOC À REMPLACER ⚠️⚠️ */
 
+const ADMIN_UID   = 'jKg26DKLPPXRb0rlIGzKqL5g9Ft2';
+const GUEST_UID   = 'FZdvlZsdqZdg5grML79LqkVae2F3';
 const GUEST_EMAIL = 'invite@videotheque.app';
+const IMG = 'https://image.tmdb.org/t/p/';
 
-const fb = initializeApp(firebaseConfig);
+const fb   = initializeApp(firebaseConfig);
 const auth = getAuth(fb);
-const db = getFirestore(fb);
-
-const IMG = 'https://image.tmdb.org/t/p/w500';
-const NO_IMG = 'data:image/svg+xml,' + encodeURIComponent(
-  '<svg xmlns="http://www.w3.org/2000/svg" width="200" height="300"><rect width="100%" height="100%" fill="#1b1d22"/><text x="50%" y="50%" fill="#777" font-size="20" text-anchor="middle">Pas d\'image</text></svg>');
-
-// Genres TMDB (films + séries) en français
-const GENRES = {28:'Action',12:'Aventure',16:'Animation',35:'Comédie',80:'Crime',99:'Documentaire',18:'Drame',
-  10751:'Familial',14:'Fantastique',36:'Histoire',27:'Horreur',10402:'Musique',9648:'Mystère',10749:'Romance',
-  878:'Science-Fiction',10770:'Téléfilm',53:'Thriller',10752:'Guerre',37:'Western',
-  10759:'Action & Aventure',10762:'Enfants',10763:'Actualités',10764:'Téléréalité',
-  10765:'Science-Fiction & Fantastique',10766:'Feuilleton',10767:'Talk-show',10768:'Guerre & Politique'};
-
+const db   = getFirestore(fb);
 const $ = id => document.getElementById(id);
-const esc = s => String(s ?? '').replace(/[&<>"']/g, c =>
-  ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-const poster = f => f.poster_path ? IMG + f.poster_path : NO_IMG;
-const year = f => (f.release_date || '').slice(0, 4);
-const typeOf = f => f.type === 'tv' ? 'tv' : 'movie';
-const plain = s => String(s || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim();
 
-const norm = (r, type) => ({
-  id: r.id, type,
-  title: r.title || r.name,
-  poster_path: r.poster_path || null,
-  release_date: r.release_date || r.first_air_date || '',
-  vote: r.vote_average || 0,
-  genres: (r.genre_ids || []).map(id => GENRES[id]).filter(Boolean).slice(0, 2)
-});
-
-const ytKey = s => {
-  s = (s || '').trim();
-  if (!s) return '';
-  if (/^[\w-]{11}$/.test(s)) return s;
-  const m = s.match(/(?:v=|youtu\.be\/|embed\/|shorts\/)([\w-]{11})/);
-  return m ? m[1] : null;
-};
-
-const LIMIT = 6;
+let isAdmin = false, tmdbKey = '';
+let films = [], requests = [];
+let unsubFilms = null, unsubReqs = null;
+let lastTmdb = [], askList = [], askPick = null;
+let editing = null;
 const expanded = { movie: false, tv: false };
 
-let apiKey = localStorage.getItem('tmdbKey') || '';
-let films = [], lastResults = [], isAdmin = false, unsub = null;
-let current = null, isNew = false;
-
-// ===== Connexion admin visible seulement avec #admin =====
-function toggleAdminBox() {
-  $('adminBox').classList.toggle('hidden', location.hash !== '#admin');
+/* ---------- Petits outils ---------- */
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const plain = s => String(s ?? '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+const year = d => String(d || '').slice(0, 4);
+const ms = v => !v ? 0 : typeof v === 'number' ? v : (typeof v.toMillis === 'function' ? v.toMillis() : (Date.parse(v) || 0));
+const safeUrl = u => /^https?:\/\//i.test(u || '') ? u : '';
+const keyOf = (type, id) => `${type || 'movie'}-${id}`;
+const inCollection = (type, id) => films.some(f => keyOf(f.type, f.id) === keyOf(type, id));
+const round1 = v => v ? Math.round(v * 10) / 10 : null;
+const typeTxt = t => t === 'tv' ? 'Série' : t === 'movie' ? 'Film' : 'Autre';
+function ytKey(v) {
+  v = (v || '').trim();
+  const m = v.match(/(?:v=|youtu\.be\/|embed\/|shorts\/)([\w-]{11})/);
+  if (m) return m[1];
+  return /^[\w-]{11}$/.test(v) ? v : '';
 }
-toggleAdminBox();
-window.addEventListener('hashchange', toggleAdminBox);
+function toast(msg) {
+  const t = $('toast'); t.textContent = msg; t.classList.add('show');
+  clearTimeout(toast.timer); toast.timer = setTimeout(() => t.classList.remove('show'), 2600);
+}
 
-// ---------- Connexion ----------
-$('codeForm').onsubmit = async e => {
-  e.preventDefault();
-  $('loginError').textContent = '';
-  const code = $('code').value.trim().toLowerCase();
-  try { await signInWithEmailAndPassword(auth, GUEST_EMAIL, code); }
-  catch { $('loginError').textContent = 'Code incorrect.'; }
-};
-
-$('adminForm').onsubmit = async e => {
-  e.preventDefault();
-  $('loginError').textContent = '';
-  try { await signInWithEmailAndPassword(auth, $('email').value.trim(), $('pwd').value); }
-  catch { $('loginError').textContent = 'E-mail ou mot de passe incorrect.'; }
-};
-
-$('logoutBtn').onclick = () => signOut(auth);
-
-onAuthStateChanged(auth, user => {
-  if (unsub) { unsub(); unsub = null; }
-  if (!user) {
-    $('app').classList.add('hidden');
-    $('loginScreen').classList.remove('hidden');
-    $('code').value = ''; $('pwd').value = '';
-    return;
-  }
-  isAdmin = user.email !== GUEST_EMAIL;
-  $('loginScreen').classList.add('hidden');
-  $('app').classList.remove('hidden');
-  document.querySelectorAll('.admin').forEach(el => el.classList.toggle('hidden', !isAdmin));
-
-  unsub = onSnapshot(query(collection(db, 'films'), orderBy('addedAt', 'desc')), snap => {
-    films = snap.docs.map(d => ({ ...d.data(), key: d.id }));
-    renderCollection();
-    if (!$('resultsSection').hidden) renderResults();
-  }, err => {
-    alert("Accès refusé. Ce compte n'est pas autorisé.");
-    signOut(auth);
-  });
-});
-
-// ---------- API TMDB ----------
+/* ---------- TMDB ---------- */
 async function tmdb(path, params = {}) {
+  if (!tmdbKey) throw new Error('NOKEY');
   const url = new URL('https://api.themoviedb.org/3' + path);
-  const opts = { headers: {} };
-  if (apiKey.startsWith('eyJ')) opts.headers.Authorization = 'Bearer ' + apiKey;
-  else url.searchParams.set('api_key', apiKey);
-  for (const [k, v] of Object.entries(params)) url.searchParams.set(k, v);
-  const r = await fetch(url, opts);
-  if (!r.ok) throw new Error(r.status === 401 ? 'Clé API invalide.' : 'Erreur TMDB ' + r.status);
+  url.searchParams.set('api_key', tmdbKey);
+  if (!('language' in params)) url.searchParams.set('language', 'fr-FR');
+  for (const [k, v] of Object.entries(params)) if (v !== '' && v != null) url.searchParams.set(k, v);
+  const r = await fetch(url);
+  if (!r.ok) throw new Error('TMDB ' + r.status);
   return r.json();
 }
 
-async function findTrailer(type, id) {
-  if (!apiKey) return '';
+async function searchTmdb(q, type, yr) {
+  let res = [];
+  if (type === 'movie') {
+    const d = await tmdb('/search/movie', { query: q, year: yr, include_adult: 'false' });
+    res = d.results.map(r => ({ ...r, media_type: 'movie' }));
+  } else if (type === 'tv') {
+    const d = await tmdb('/search/tv', { query: q, first_air_date_year: yr, include_adult: 'false' });
+    res = d.results.map(r => ({ ...r, media_type: 'tv' }));
+  } else {
+    const d = await tmdb('/search/multi', { query: q, include_adult: 'false' });
+    res = d.results.filter(r => r.media_type === 'movie' || r.media_type === 'tv');
+    if (yr) res = res.filter(r => year(r.release_date || r.first_air_date) === String(yr));
+  }
+  return res.slice(0, 18).map(r => ({
+    id: r.id, type: r.media_type,
+    title: r.title || r.name || '',
+    poster_path: r.poster_path || '',
+    release_date: r.release_date || r.first_air_date || '',
+    vote: round1(r.vote_average)
+  }));
+}
+
+async function fetchDetails(type, id) {
+  const d = await tmdb(`/${type}/${id}`);
+  return {
+    title: d.title || d.name || '',
+    poster_path: d.poster_path || '',
+    release_date: d.release_date || d.first_air_date || '',
+    vote: round1(d.vote_average),
+    genres: (d.genres || []).map(g => g.name)
+  };
+}
+
+async function fetchTrailer(type, id) {
   for (const lang of ['fr-FR', 'en-US']) {
     try {
-      const vids = (await tmdb(`/${type}/${id}/videos`, { language: lang })).results
-        .filter(v => v.site === 'YouTube');
-      const pick = vids.find(v => v.type === 'Trailer' && v.official)
-                || vids.find(v => v.type === 'Trailer')
-                || vids.find(v => v.type === 'Teaser')
-                || vids[0];
-      if (pick) return pick.key;
-    } catch {}
+      const d = await tmdb(`/${type}/${id}/videos`, { language: lang });
+      const yt = (d.results || []).filter(v => v.site === 'YouTube');
+      const best = yt.find(v => v.type === 'Trailer') || yt.find(v => v.type === 'Teaser') || yt[0];
+      if (best) return best.key;
+    } catch (e) { /* langue suivante */ }
   }
   return '';
 }
 
-$('searchForm').onsubmit = async e => {
-  e.preventDefault();
-  if (!apiKey) return openKeyDialog();
-  const type = $('type').value;
-  const y = $('yearInput').value.trim();
-  const params = { query: $('query').value.trim(), language: 'fr-FR' };
+/* Clé TMDB partagée via Firestore (config/tmdb) pour que l'invité puisse chercher */
+async function loadTmdbKey() {
+  const local = localStorage.getItem('tmdbKey') || '';
+  let remote = '';
   try {
-    if (type === 'movie') {
-      if (y) params.primary_release_year = y;
-      lastResults = (await tmdb('/search/movie', params)).results.map(r => norm(r, 'movie'));
-    } else if (type === 'tv') {
-      if (y) params.first_air_date_year = y;
-      lastResults = (await tmdb('/search/tv', params)).results.map(r => norm(r, 'tv'));
-    } else {
-      lastResults = (await tmdb('/search/multi', params)).results
-        .filter(r => r.media_type === 'movie' || r.media_type === 'tv')
-        .map(r => norm(r, r.media_type));
-      if (y) lastResults = lastResults.filter(r => year(r) === y);
+    const s = await getDoc(doc(db, 'config', 'tmdb'));
+    if (s.exists()) remote = s.data().apiKey || '';
+  } catch (e) { console.warn('config/tmdb illisible', e); }
+  if (isAdmin) {
+    if (local && local !== remote) {
+      try { await setDoc(doc(db, 'config', 'tmdb'), { apiKey: local }); }
+      catch (e) { console.warn('Impossible de copier la clé dans Firestore', e); }
     }
-    renderResults();
-  } catch (err) { alert(err.message); }
-};
-
-const isOwned = r => films.some(x => typeOf(x) === r.type && x.id === r.id);
-
-// ---------- Morceaux de carte ----------
-const tagHTML = f => `<span class="tag">${typeOf(f) === 'tv' ? 'Série' : 'Film'}</span>`;
-const ratingHTML = f => f.vote ? `<span class="rating">⭐ TMDB ${Number(f.vote).toFixed(1)}/10</span>` : '';
-const headHTML = f => `
-  <div class="head">
-    <div class="title">${esc(f.title)}</div>
-    <div class="year">${year(f)}</div>
-  </div>
-  ${f.genres?.length ? `<div class="genres">${f.genres.map(esc).join(' · ')}</div>` : ''}`;
-
-function renderResults() {
-  $('resultsSection').hidden = false;
-  $('results').innerHTML = lastResults.length ? lastResults.map((f, i) => {
-    const owned = isOwned(f);
-    return `<div class="card">
-      <div class="poster"><img src="${poster(f)}" alt="${esc(f.title)}" loading="lazy">${tagHTML(f)}${ratingHTML(f)}</div>
-      ${headHTML(f)}
-      <div class="sep"></div>
-      <div class="actions">
-        <button data-add="${i}" ${owned ? 'disabled' : ''}>${owned ? '✓ Ajouté' : '+ Ajouter'}</button>
-      </div>
-    </div>`;
-  }).join('') : '<p class="empty">Aucun résultat. Essaie sans l\'année, avec le titre original, ou change Films/Séries.</p>';
+    if (!local && remote) localStorage.setItem('tmdbKey', remote);
+    tmdbKey = local || remote;
+  } else {
+    tmdbKey = remote;
+  }
 }
 
-$('results').onclick = async e => {
-  const btn = e.target.closest('button[data-add]');
-  if (!btn) return;
-  const f = lastResults[btn.dataset.add];
-  btn.disabled = true; btn.textContent = '⏳ ...';
-  const trailer = await findTrailer(f.type, f.id);
-  btn.disabled = false; btn.textContent = '+ Ajouter';
-  openLinkDialog({ ...f, key: `${f.type}-${f.id}`, link: '', label: '', trailer }, true);
-};
-$('closeResults').onclick = () => $('resultsSection').hidden = true;
-
-// ---------- Collection ----------
-function cardHTML(f) {
-  const inner = `<img src="${poster(f)}" alt="${esc(f.title)}" loading="lazy">${tagHTML(f)}${ratingHTML(f)}`;
+/* ---------- Cartes ---------- */
+function cardHTML(f, mode) {
+  const type = f.type || 'movie';
+  const poster = f.poster_path
+    ? `<img src="${IMG}w342${esc(f.poster_path)}" alt="" loading="lazy">`
+    : `<div class="noimg">${esc(f.title)}</div>`;
+  const vote = f.vote ? `<span class="vote">⭐ TMDB ${Number(f.vote).toFixed(1)}/10</span>` : '';
+  const genres = (f.genres && f.genres.length) ? `<div class="genres">${esc(f.genres.join(' · '))}</div>` : '';
+  let actions = '';
+  if (mode === 'collection') {
+    if (f.trailer) actions += `<button data-act="trailer" data-key="${esc(f.trailer)}">▶ Bande-annonce</button>`;
+    const link = safeUrl(f.link);
+    if (link) actions += `<a href="${esc(link)}" target="_blank" rel="noopener">🔗 ${esc(f.label || 'Lien')}</a>`;
+    if (isAdmin) actions += `<button data-act="edit" data-doc="${esc(f._docId)}">✏️ Modifier</button><button data-act="del" data-doc="${esc(f._docId)}" title="Supprimer">🗑️</button>`;
+  } else {
+    actions = inCollection(type, f.id)
+      ? `<button disabled>✓ Déjà ajouté</button>`
+      : `<button class="primary" data-act="add" data-idx="${f._idx}">+ Ajouter</button>`;
+  }
   return `<div class="card">
-    ${f.link ? `<a class="poster" href="${esc(f.link)}" target="_blank" rel="noopener">${inner}</a>`
-             : `<div class="poster">${inner}</div>`}
-    ${headHTML(f)}
-    <div class="sep"></div>
-    <div class="extras">
-      ${f.trailer ? `<button class="secondary trailerBtn" data-trailer="${esc(f.trailer)}">▶ Bande-annonce</button>` : ''}
-      ${f.link ? `<a class="link" href="${esc(f.link)}" target="_blank" rel="noopener">🔗 ${esc(f.label || 'Ouvrir le lien')}</a>` : ''}
-      ${isAdmin ? `<div class="actions">
-        <button class="secondary" data-edit="${esc(f.key)}">✏️ Modifier</button>
-        <button class="danger" data-del="${esc(f.key)}">🗑️</button>
-      </div>` : ''}
+    <div class="poster">${poster}<span class="tag">${type === 'tv' ? 'SÉRIE' : 'FILM'}</span>${vote}</div>
+    <div class="info">
+      <div class="tl"><span class="t">${esc(f.title)}</span><span class="y">${esc(year(f.release_date))}</span></div>
+      ${genres}
+      <hr class="sep">
+      <div class="actions">${actions}</div>
     </div>
   </div>`;
 }
 
-function sectionTitle(type, count, open, searching) {
-  const tv = type === 'tv';
-  if (searching) return tv ? `Séries (${count})` : `Films (${count})`;
-  if (open) return tv ? 'Toutes les séries' : 'Tous les films';
-  const n = Math.min(LIMIT, count);
-  if (n <= 1) return tv ? 'La dernière série' : 'Le dernier film';
-  return tv ? `Les ${n} dernières séries` : `Les ${n} derniers films`;
+function renderTmdbResults() {
+  lastTmdb.forEach((f, i) => f._idx = i);
+  $('tmdbResults').innerHTML = lastTmdb.length
+    ? lastTmdb.map(f => cardHTML(f, 'add')).join('')
+    : '<div class="empty">Aucun résultat.</div>';
 }
 
+/* ---------- Collection ---------- */
 function renderCollection() {
-  if (!films.length) {
-    $('collection').innerHTML = '<p class="empty">La collection est vide.</p>';
-    return;
-  }
-  const q = plain($('filterText').value);
-  // Toujours les derniers ajouts en premier
-  const list = films.filter(f => !q || plain(f.title).includes(q))
-                    .sort((a, b) => (b.addedAt || 0) - (a.addedAt || 0));
-
-  const groups = [
-    { type: 'movie', items: list.filter(f => typeOf(f) === 'movie') },
-    { type: 'tv',    items: list.filter(f => typeOf(f) === 'tv') }
+  const q = plain($('filterText').value.trim());
+  const sorted = [...films].sort((a, b) => ms(b.addedAt) - ms(a.addedAt));
+  const match = f => !q || plain(f.title).includes(q) || plain((f.genres || []).join(' ')).includes(q);
+  const sections = [
+    { key: 'movie', title: 'Les 6 derniers films',   all: 'Tous les films',    list: sorted.filter(f => (f.type || 'movie') !== 'tv') },
+    { key: 'tv',    title: 'Les 6 dernières séries', all: 'Toutes les séries', list: sorted.filter(f => f.type === 'tv') }
   ];
+  let html = '';
+  for (const s of sections) {
+    let list = s.list.filter(match);
+    let head, btn = '';
+    if (q) {
+      head = `${s.all} (${list.length})`;
+    } else {
+      head = expanded[s.key] ? `${s.all} (${list.length})` : s.title;
+      if (list.length > 6) btn = `<button class="seeAll" data-sec="${s.key}">${expanded[s.key] ? 'Voir moins ↑' : 'Voir tout →'}</button>`;
+      if (!expanded[s.key]) list = list.slice(0, 6);
+    }
+    html += `<div class="secHead"><h2>${esc(head)}</h2>${btn}</div>`;
+    html += list.length
+      ? `<div class="grid6">${list.map(f => cardHTML(f, 'collection')).join('')}</div>`
+      : `<div class="empty">${q ? 'Aucun résultat.' : 'Rien pour le moment.'}</div>`;
+  }
+  $('collection').innerHTML = html;
+}
+$('filterText').addEventListener('input', renderCollection);
 
-  const html = groups.map(g => {
-    if (!g.items.length) return q ? '' : '';
-    const open = expanded[g.type] || !!q;
-    const shown = open ? g.items : g.items.slice(0, LIMIT);
-    const toggle = q ? '' :
-      `<button class="seeAll" data-toggle="${g.type}">${expanded[g.type] ? 'Voir moins ↑' : 'Voir tout →'}</button>`;
-    return `<section class="group" id="group-${g.type}">
-      <div class="section-head">
-        <h2 class="sec-title">${sectionTitle(g.type, g.items.length, expanded[g.type], !!q)}</h2>
-        ${toggle}
-      </div>
-      <div class="grid6">${shown.map(cardHTML).join('')}</div>
-    </section>`;
-  }).join('');
-
-  $('collection').innerHTML = html || '<p class="empty">Aucun résultat pour cette recherche.</p>';
+/* ---------- 📝 Demander un ajout (tout le monde) ---------- */
+function rowHTML(r, extra = '') {
+  const img = r.poster_path ? `<img src="${IMG}w92${esc(r.poster_path)}" alt="">` : '<div class="ph"></div>';
+  const y = year(r.release_date);
+  return `${img}<div class="body">
+    <span class="t">${esc(r.title)}</span>
+    <span class="meta">${typeTxt(r.type)}${y ? ' · ' + esc(y) : ''}</span>
+    ${extra}
+  </div>`;
 }
 
-$('filterText').oninput = renderCollection;
-
-$('collection').onclick = async e => {
-  const btn = e.target.closest('button');
-  if (!btn) return;
-  const { edit, del, trailer, toggle } = btn.dataset;
-  if (toggle) {
-    expanded[toggle] = !expanded[toggle];
-    renderCollection();
-    $('group-' + toggle)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+function renderAsk() {
+  if (askPick) {
+    $('askResults').innerHTML = `<div class="row chosen">${rowHTML(askPick, '<span class="meta owned">✓ Sélectionné</span>')}
+      <button type="button" data-act="unpick">Changer</button></div>`;
     return;
   }
-  if (trailer) return playTrailer(trailer);
-  if (edit) {
-    const item = { ...films.find(f => f.key === edit) };
-    if (!item.trailer) { btn.textContent = '⏳'; item.trailer = await findTrailer(typeOf(item), item.id); }
-    openLinkDialog(item, false);
-  }
-  if (del && confirm('Supprimer ?')) {
-    try { await deleteDoc(doc(db, 'films', del)); }
-    catch { alert('Suppression impossible.'); }
-  }
+  askList.forEach((r, i) => r._idx = i);
+  $('askResults').innerHTML = askList.map(r => {
+    const owned = inCollection(r.type, r.id);
+    return `<button type="button" class="row" data-act="pick" data-idx="${r._idx}" ${owned ? 'disabled' : ''}>
+      ${rowHTML(r, owned ? '<span class="meta owned">✓ Déjà dans la collection</span>' : '')}</button>`;
+  }).join('');
+}
+
+$('askBtn').onclick = () => {
+  askList = []; askPick = null;
+  $('askQuery').value = ''; $('askMsg').value = '';
+  $('askResults').innerHTML = '';
+  $('askDialog').showModal();
 };
 
-// ---------- Lecteur bande-annonce ----------
-function playTrailer(k) {
-  $('player').src = `https://www.youtube-nocookie.com/embed/${encodeURIComponent(k)}?autoplay=1&rel=0`;
-  $('trailerDialog').showModal();
-}
-$('closeTrailer').onclick = () => $('trailerDialog').close();
-$('trailerDialog').addEventListener('close', () => $('player').src = '');
-$('trailerDialog').onclick = e => { if (e.target === $('trailerDialog')) $('trailerDialog').close(); };
+$('askForm').addEventListener('submit', async e => {
+  e.preventDefault();
+  const q = $('askQuery').value.trim();
+  if (!q) return;
+  askPick = null;
+  if (!tmdbKey) {
+    $('askResults').innerHTML = '<div class="empty">Recherche indisponible. Clique simplement sur Envoyer : ton texte sera transmis.</div>';
+    return;
+  }
+  $('askResults').innerHTML = '<div class="empty">Recherche…</div>';
+  try {
+    askList = (await searchTmdb(q, $('askType').value, '')).slice(0, 8);
+    if (!askList.length) { $('askResults').innerHTML = '<div class="empty">Aucun résultat. Tu peux quand même envoyer ta demande.</div>'; return; }
+    renderAsk();
+  } catch (err) {
+    console.error(err);
+    $('askResults').innerHTML = '<div class="empty">Erreur de recherche. Tu peux quand même envoyer ta demande.</div>';
+  }
+});
+$('askQuery').addEventListener('input', () => { if (askPick) { askPick = null; askList = []; $('askResults').innerHTML = ''; } });
 
-// ---------- Mettre à jour : note, genres, bande-annonce des anciens titres ----------
-$('updateBtn').onclick = async () => {
-  if (!apiKey) return openKeyDialog();
-  const todo = films.filter(f => !f.trailer || !f.genres || f.vote == null);
-  if (!todo.length) return alert('Tout est déjà à jour 👍');
-  const btn = $('updateBtn');
-  btn.disabled = true;
-  let done = 0;
-  for (const [i, f] of todo.entries()) {
-    btn.textContent = `⏳ ${i + 1}/${todo.length}`;
-    const type = typeOf(f);
-    const patch = { type };
-    try {
-      const d = await tmdb(`/${type}/${f.id}`, { language: 'fr-FR' });
-      patch.vote = d.vote_average || 0;
-      patch.genres = (d.genres || []).slice(0, 2).map(g => g.name);
-    } catch {}
-    if (!f.trailer) {
-      const t = await findTrailer(type, f.id);
-      if (t) patch.trailer = t;
-    }
-    try { await setDoc(doc(db, 'films', f.key), patch, { merge: true }); done++; } catch {}
+$('askSend').onclick = async () => {
+  const p = askPick;
+  const title = (p ? p.title : $('askQuery').value.trim()).slice(0, 200);
+  if (!title) { toast('Écris un titre'); return; }
+  const btn = $('askSend'); btn.disabled = true;
+  try {
+    await addDoc(collection(db, 'requests'), {
+      tmdbId: p ? p.id : null,
+      type: p ? p.type : 'autre',
+      title,
+      poster_path: p ? (p.poster_path || '') : '',
+      release_date: p ? (p.release_date || '') : '',
+      message: $('askMsg').value.trim().slice(0, 500),
+      createdAt: Date.now(),
+      by: auth.currentUser.uid
+    });
+    $('askDialog').close();
+    toast('Demande envoyée ✓ Merci !');
+  } catch (err) {
+    console.error(err);
+    toast('Erreur : demande non envoyée');
   }
   btn.disabled = false;
-  btn.textContent = '🔄 Mettre à jour';
-  alert(`${done} titre(s) mis à jour sur ${todo.length}.`);
 };
 
-// ---------- Fenêtre lien ----------
-function openLinkDialog(item, newItem) {
-  current = item; isNew = newItem;
-  $('dlgTitle').textContent = item.title;
-  $('linkUrl').value = item.link || '';
-  $('linkLabel').value = item.label || '';
-  $('trailerUrl').value = item.trailer ? 'https://www.youtube.com/watch?v=' + item.trailer : '';
+/* ---------- 📬 Demandes reçues (admin) ---------- */
+function renderInbox() {
+  $('reqBadge').textContent = requests.length;
+  $('reqBadge').classList.toggle('hidden', !requests.length);
+  const sorted = [...requests].sort((a, b) => ms(b.createdAt) - ms(a.createdAt));
+  $('inboxList').innerHTML = sorted.length ? sorted.map(r => {
+    const date = ms(r.createdAt) ? new Date(ms(r.createdAt)).toLocaleDateString('fr-FR') : '';
+    const owned = r.tmdbId && inCollection(r.type, r.tmdbId);
+    const extra = `${date ? `<span class="meta">Le ${date}</span>` : ''}
+      ${owned ? '<span class="meta owned">✓ Déjà dans la collection</span>' : ''}
+      ${r.message ? `<div class="msg">${esc(r.message)}</div>` : ''}`;
+    return `<div class="row">${rowHTML(r, extra)}
+      <button type="button" data-act="delReq" data-id="${esc(r._id)}" title="Supprimer">🗑️</button></div>`;
+  }).join('') : '<div class="empty">Aucune demande.</div>';
+}
+$('inboxBtn').onclick = () => { renderInbox(); $('inboxDialog').showModal(); };
+
+/* ---------- Ajout / modification (admin) ---------- */
+$('tmdbForm').addEventListener('submit', async e => {
+  e.preventDefault();
+  const q = $('tmdbQuery').value.trim();
+  if (!q) return;
+  if (!tmdbKey) { toast('Enregistre d’abord ta clé API ⚙️'); return; }
+  $('tmdbBox').classList.remove('hidden');
+  $('tmdbResults').innerHTML = '<div class="empty">Recherche…</div>';
+  try {
+    lastTmdb = await searchTmdb(q, $('tmdbType').value, $('tmdbYear').value.trim());
+    renderTmdbResults();
+    $('tmdbBox').scrollIntoView({ behavior: 'smooth' });
+  } catch (err) {
+    console.error(err);
+    $('tmdbResults').innerHTML = '<div class="empty">Erreur TMDB (clé API ?).</div>';
+  }
+});
+$('closeResults').onclick = () => { lastTmdb = []; $('tmdbResults').innerHTML = ''; $('tmdbBox').classList.add('hidden'); };
+
+async function prepareAdd(item) {
+  toast('Préparation…');
+  let det = {};
+  try { det = await fetchDetails(item.type, item.id); } catch (e) { console.warn(e); }
+  const trailer = await fetchTrailer(item.type, item.id);
+  const base = {
+    id: item.id,
+    type: item.type,
+    title: det.title || item.title,
+    poster_path: det.poster_path || item.poster_path || '',
+    release_date: det.release_date || item.release_date || '',
+    vote: det.vote ?? item.vote ?? null,
+    genres: det.genres || [],
+    link: '', label: '', trailer,
+    addedAt: Date.now()
+  };
+  openLinkDialog({ docId: keyOf(item.type, item.id), base, isEdit: false });
+}
+
+function openLinkDialog(data) {
+  editing = data;
+  const b = data.base;
+  $('linkTitle').textContent = (data.isEdit ? '✏️ Modifier : ' : '+ Ajouter : ') + b.title;
+  $('fLink').value = b.link || '';
+  $('fLabel').value = b.label || '';
+  $('fTrailer').value = b.trailer || '';
   $('linkDialog').showModal();
 }
 
-$('linkForm').onsubmit = async e => {
-  e.preventDefault();
-  const url = $('linkUrl').value.trim();
-  if (url && !/^https?:\/\//i.test(url)) return alert('Le lien doit commencer par http:// ou https://');
-  const t = ytKey($('trailerUrl').value);
-  if (t === null) return alert('Lien YouTube de la bande-annonce invalide.');
-  current.link = url;
-  current.label = $('linkLabel').value.trim();
-  current.trailer = t;
-  if (isNew) current.addedAt = Date.now();
-  const { key, ...data } = current;
+$('saveFilm').onclick = async () => {
+  if (!editing) return;
+  const link = $('fLink').value.trim();
+  if (link && !safeUrl(link)) { toast('Le lien doit commencer par https://'); return; }
+  const rawTrailer = $('fTrailer').value.trim();
+  const trailer = ytKey(rawTrailer);
+  if (rawTrailer && !trailer) { toast('Lien ou clé YouTube invalide'); return; }
+  const data = { ...editing.base, link, label: $('fLabel').value.trim(), trailer };
+  delete data._docId; delete data._idx;
+  const btn = $('saveFilm'); btn.disabled = true;
   try {
-    await setDoc(doc(db, 'films', key), data, { merge: true });
+    await setDoc(doc(db, 'films', editing.docId), data);
     $('linkDialog').close();
-  } catch { alert('Enregistrement impossible.'); }
+    toast(editing.isEdit ? 'Modifié ✓' : 'Ajouté ✓');
+  } catch (err) {
+    console.error(err);
+    toast('Erreur d’enregistrement');
+  }
+  btn.disabled = false;
 };
-$('cancelLink').onclick = () => $('linkDialog').close();
 
-// ---------- Clé API ----------
-function openKeyDialog() { $('keyInput').value = apiKey; $('keyDialog').showModal(); }
-$('keyBtn').onclick = openKeyDialog;
-$('cancelKey').onclick = () => $('keyDialog').close();
-$('keyForm').onsubmit = e => {
-  e.preventDefault();
-  apiKey = $('keyInput').value.trim();
-  localStorage.setItem('tmdbKey', apiKey);
-  $('keyDialog').close();
+/* 🔄 Remplir les infos manquantes des anciens titres */
+$('refreshBtn').onclick = async () => {
+  if (!tmdbKey) { toast('Enregistre d’abord ta clé API ⚙️'); return; }
+  const todo = films.filter(f => !f.vote || !(f.genres && f.genres.length) || !f.trailer || !f.type);
+  if (!todo.length) { toast('Tout est déjà à jour ✓'); return; }
+  const btn = $('refreshBtn'); btn.disabled = true;
+  let n = 0;
+  for (const f of todo) {
+    btn.textContent = `🔄 ${++n}/${todo.length}`;
+    const type = f.type || 'movie';
+    const upd = {};
+    try {
+      if (!f.vote || !(f.genres && f.genres.length)) {
+        const det = await fetchDetails(type, f.id);
+        if (!f.vote && det.vote) upd.vote = det.vote;
+        if (!(f.genres && f.genres.length) && det.genres.length) upd.genres = det.genres;
+      }
+      if (!f.trailer) { const k = await fetchTrailer(type, f.id); if (k) upd.trailer = k; }
+      if (!f.type) upd.type = type;
+      if (Object.keys(upd).length) await updateDoc(doc(db, 'films', f._docId), upd);
+    } catch (e) { console.warn(f.title, e); }
+  }
+  btn.textContent = '🔄 Mettre à jour'; btn.disabled = false;
+  toast('Mise à jour terminée ✓');
 };
+
+/* ⚙️ Clé API */
+$('keyBtn').onclick = async () => {
+  const k = prompt('Clé API TMDB (v3) :', tmdbKey || '');
+  if (k === null) return;
+  tmdbKey = k.trim();
+  localStorage.setItem('tmdbKey', tmdbKey);
+  try {
+    await setDoc(doc(db, 'config', 'tmdb'), { apiKey: tmdbKey });
+    toast('Clé enregistrée ✓');
+  } catch (err) {
+    console.error(err);
+    toast('Clé gardée sur ce navigateur seulement (règles Firestore ?)');
+  }
+};
+
+/* ---------- Bande-annonce ---------- */
+function openTrailer(key) {
+  $('ytFrame').src = `https://www.youtube-nocookie.com/embed/${encodeURIComponent(key)}?autoplay=1&rel=0`;
+  $('trailerDialog').showModal();
+}
+$('trailerDialog').addEventListener('close', () => { $('ytFrame').src = 'about:blank'; });
+
+/* Fermer une fenêtre en cliquant à côté */
+document.querySelectorAll('dialog').forEach(d => d.addEventListener('click', e => {
+  if (e.target !== d) return;
+  const r = d.getBoundingClientRect();
+  if (e.clientX < r.left || e.clientX > r.right || e.clientY < r.top || e.clientY > r.bottom) d.close();
+}));
+
+/* ---------- Tous les clics ---------- */
+document.addEventListener('click', async e => {
+  const el = e.target.closest('[data-act],[data-sec],[data-close]');
+  if (!el) return;
+  if (el.hasAttribute('data-close')) { el.closest('dialog').close(); return; }
+  if (el.dataset.sec) { expanded[el.dataset.sec] = !expanded[el.dataset.sec]; renderCollection(); return; }
+
+  const act = el.dataset.act;
+  if (act === 'trailer') openTrailer(el.dataset.key);
+  else if (act === 'add') prepareAdd(lastTmdb[+el.dataset.idx]);
+  else if (act === 'pick') { askPick = askList[+el.dataset.idx]; renderAsk(); }
+  else if (act === 'unpick') { askPick = null; renderAsk(); }
+  else if (act === 'edit') {
+    const f = films.find(x => x._docId === el.dataset.doc);
+    if (f) openLinkDialog({ docId: f._docId, base: { ...f }, isEdit: true });
+  }
+  else if (act === 'del') {
+    const f = films.find(x => x._docId === el.dataset.doc);
+    if (!f || !confirm(`Supprimer « ${f.title} » ?`)) return;
+    try { await deleteDoc(doc(db, 'films', f._docId)); toast('Supprimé'); }
+    catch (err) { console.error(err); toast('Erreur'); }
+  }
+  else if (act === 'delReq') {
+    if (!confirm('Supprimer cette demande ?')) return;
+    try { await deleteDoc(doc(db, 'requests', el.dataset.id)); toast('Demande supprimée'); }
+    catch (err) { console.error(err); toast('Erreur'); }
+  }
+});
+
+/* ---------- Connexion ---------- */
+function updateAdminBox() {
+  const on = location.hash === '#admin';
+  $('adminBox').classList.toggle('hidden', !on);
+  if (on) $('adminBox').open = true;
+}
+window.addEventListener('hashchange', updateAdminBox);
+updateAdminBox();
+
+async function guestLogin() {
+  const code = $('guestCode').value.trim().toLowerCase();
+  if (!code) return;
+  $('loginErr').textContent = '';
+  try { await signInWithEmailAndPassword(auth, GUEST_EMAIL, code); }
+  catch (e) { console.warn(e.code); $('loginErr').textContent = 'Code incorrect.'; }
+}
+$('guestBtn').onclick = guestLogin;
+$('guestCode').addEventListener('keydown', e => { if (e.key === 'Enter') guestLogin(); });
+
+async function adminLogin() {
+  $('loginErr').textContent = '';
+  try { await signInWithEmailAndPassword(auth, $('adminEmail').value.trim(), $('adminPass').value); }
+  catch (e) { console.warn(e.code); $('loginErr').textContent = 'Identifiants incorrects.'; }
+}
+$('adminBtn').onclick = adminLogin;
+$('adminPass').addEventListener('keydown', e => { if (e.key === 'Enter') adminLogin(); });
+
+$('logoutBtn').onclick = () => signOut(auth);
+
+onAuthStateChanged(auth, async user => {
+  if (unsubFilms) { unsubFilms(); unsubFilms = null; }
+  if (unsubReqs)  { unsubReqs();  unsubReqs = null; }
+
+  if (!user) {
+    films = []; requests = []; lastTmdb = []; askList = []; askPick = null; tmdbKey = ''; isAdmin = false;
+    document.body.classList.remove('isAdmin');
+    $('app').classList.add('hidden');
+    $('loginScreen').classList.remove('hidden');
+    return;
+  }
+  if (user.uid !== ADMIN_UID && user.uid !== GUEST_UID) {
+    await signOut(auth);
+    $('loginErr').textContent = 'Compte non autorisé.';
+    return;
+  }
+
+  isAdmin = user.uid === ADMIN_UID;
+  document.body.classList.toggle('isAdmin', isAdmin);
+  $('loginScreen').classList.add('hidden');
+  $('app').classList.remove('hidden');
+  $('guestCode').value = ''; $('adminPass').value = '';
+
+  await loadTmdbKey();
+  if (auth.currentUser?.uid !== user.uid) return;
+
+  unsubFilms = onSnapshot(collection(db, 'films'), snap => {
+    films = snap.docs.map(d => ({ ...d.data(), _docId: d.id }));
+    renderCollection();
+    if (lastTmdb.length) renderTmdbResults();
+    if (isAdmin) renderInbox();
+  }, err => {
+    console.error(err);
+    $('collection').innerHTML = '<div class="empty">Accès refusé : vérifie les règles Firestore.</div>';
+  });
+
+  if (isAdmin) {
+    unsubReqs = onSnapshot(collection(db, 'requests'), snap => {
+      requests = snap.docs.map(d => ({ ...d.data(), _id: d.id }));
+      renderInbox();
+    }, err => {
+      console.error(err);
+      $('inboxList').innerHTML = '<div class="empty">Impossible de lire les demandes : publie les nouvelles règles Firestore.</div>';
+    });
+  }
+});
 </script>
 </body>
 </html>
