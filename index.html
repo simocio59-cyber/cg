@@ -88,9 +88,10 @@ dialog textarea{min-height:80px;resize:vertical}
 /* Demandes */
 .askSearch{display:flex;gap:6px;margin-top:10px}
 .askSearch input{flex:1;min-width:0}
-.sugList{display:flex;flex-direction:column;gap:6px;margin-top:10px;max-height:300px;overflow-y:auto}
+.sugList{display:flex;flex-direction:column;gap:6px;margin-top:10px;max-height:320px;overflow-y:auto}
 .row{display:flex;gap:10px;align-items:center;text-align:left;width:100%;background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:6px}
-.row img,.row .ph{width:42px;aspect-ratio:2/3;object-fit:cover;border-radius:4px;background:#1a1a1a;flex-shrink:0}
+button.row:hover{border-color:#777}
+.row img,.row .ph{width:46px;aspect-ratio:2/3;object-fit:cover;border-radius:4px;background:#1a1a1a;flex-shrink:0}
 .row .body{flex:1;min-width:0;display:flex;flex-direction:column;gap:3px}
 .row .t{font-size:12px;overflow-wrap:anywhere}
 .chosen{border-color:var(--ok)}
@@ -101,7 +102,7 @@ dialog textarea{min-height:80px;resize:vertical}
 #inboxList .row{align-items:flex-start}
 
 footer{border-top:1px solid var(--line);color:var(--mut);font-size:11px;text-align:center;padding:18px 20px}
-#toast{position:fixed;left:50%;bottom:20px;transform:translateX(-50%);background:#fff;color:#000;font-weight:700;padding:10px 16px;border-radius:8px;z-index:50;opacity:0;pointer-events:none;transition:opacity .2s}
+#toast{position:fixed;left:50%;bottom:20px;transform:translateX(-50%);background:#fff;color:#000;font-weight:700;padding:10px 16px;border-radius:8px;z-index:50;opacity:0;pointer-events:none;transition:opacity .2s;max-width:90vw;text-align:center}
 #toast.show{opacity:1}
 
 @media (max-width:1000px){.grid6{grid-template-columns:repeat(3,minmax(0,1fr))}}
@@ -189,14 +190,14 @@ footer{border-top:1px solid var(--line);color:var(--mut);font-size:11px;text-ali
 <!-- ===== FENÊTRE DEMANDE ===== -->
 <dialog id="askDialog">
   <h3>📝 Demander un ajout</h3>
-  <div class="meta">Tape le titre, clique sur Chercher puis choisis le bon. Pas trouvé ? Envoie quand même : ton texte sera transmis.</div>
+  <div class="meta">Tape le titre : les propositions s'affichent toutes seules. Clique sur la bonne. Pas trouvé ? Envoie quand même, ton texte sera transmis.</div>
   <form id="askForm" class="askSearch">
     <select id="askType">
       <option value="all">Tout</option>
       <option value="movie">Films</option>
       <option value="tv">Séries</option>
     </select>
-    <input id="askQuery" type="text" maxlength="200" placeholder="Titre…">
+    <input id="askQuery" type="text" maxlength="200" placeholder="Titre…" autocomplete="off">
     <button type="submit">Chercher</button>
   </form>
   <div id="askResults" class="sugList"></div>
@@ -251,6 +252,7 @@ let isAdmin = false, tmdbKey = '';
 let films = [], requests = [];
 let unsubFilms = null, unsubReqs = null;
 let lastTmdb = [], askList = [], askPick = null;
+let askTimer = null, askSeq = 0;
 let editing = null;
 const expanded = { movie: false, tv: false };
 
@@ -270,9 +272,9 @@ function ytKey(v) {
   if (m) return m[1];
   return /^[\w-]{11}$/.test(v) ? v : '';
 }
-function toast(msg) {
+function toast(msg, time = 2600) {
   const t = $('toast'); t.textContent = msg; t.classList.add('show');
-  clearTimeout(toast.timer); toast.timer = setTimeout(() => t.classList.remove('show'), 2600);
+  clearTimeout(toast.timer); toast.timer = setTimeout(() => t.classList.remove('show'), time);
 }
 
 /* ---------- TMDB ---------- */
@@ -342,8 +344,11 @@ async function loadTmdbKey() {
   } catch (e) { console.warn('config/tmdb illisible', e); }
   if (isAdmin) {
     if (local && local !== remote) {
-      try { await setDoc(doc(db, 'config', 'tmdb'), { apiKey: local }); }
-      catch (e) { console.warn('Impossible de copier la clé dans Firestore', e); }
+      try { await setDoc(doc(db, 'config', 'tmdb'), { apiKey: local }); remote = local; }
+      catch (e) {
+        console.warn('Impossible de copier la clé dans Firestore', e);
+        toast('⚠️ Clé TMDB non partagée avec l’invité : publie les nouvelles règles Firestore', 6000);
+      }
     }
     if (!local && remote) localStorage.setItem('tmdbKey', remote);
     tmdbKey = local || remote;
@@ -419,6 +424,8 @@ function renderCollection() {
 $('filterText').addEventListener('input', renderCollection);
 
 /* ---------- 📝 Demander un ajout (tout le monde) ---------- */
+const NO_KEY_MSG = '<div class="empty">Les propositions avec images ne sont pas disponibles pour le moment. Écris simplement le titre et clique sur Envoyer.</div>';
+
 function rowHTML(r, extra = '') {
   const img = r.poster_path ? `<img src="${IMG}w92${esc(r.poster_path)}" alt="">` : '<div class="ph"></div>';
   const y = year(r.release_date);
@@ -443,33 +450,41 @@ function renderAsk() {
   }).join('');
 }
 
-$('askBtn').onclick = () => {
-  askList = []; askPick = null;
-  $('askQuery').value = ''; $('askMsg').value = '';
-  $('askResults').innerHTML = '';
-  $('askDialog').showModal();
-};
-
-$('askForm').addEventListener('submit', async e => {
-  e.preventDefault();
+async function runAskSearch() {
   const q = $('askQuery').value.trim();
-  if (!q) return;
   askPick = null;
-  if (!tmdbKey) {
-    $('askResults').innerHTML = '<div class="empty">Recherche indisponible. Clique simplement sur Envoyer : ton texte sera transmis.</div>';
-    return;
-  }
+  if (q.length < 2) { askList = []; $('askResults').innerHTML = tmdbKey ? '' : NO_KEY_MSG; return; }
+  if (!tmdbKey) { $('askResults').innerHTML = NO_KEY_MSG; return; }
+  const seq = ++askSeq;
   $('askResults').innerHTML = '<div class="empty">Recherche…</div>';
   try {
-    askList = (await searchTmdb(q, $('askType').value, '')).slice(0, 8);
+    const res = (await searchTmdb(q, $('askType').value, '')).slice(0, 8);
+    if (seq !== askSeq) return;            // une recherche plus récente est en cours
+    askList = res;
     if (!askList.length) { $('askResults').innerHTML = '<div class="empty">Aucun résultat. Tu peux quand même envoyer ta demande.</div>'; return; }
     renderAsk();
   } catch (err) {
+    if (seq !== askSeq) return;
     console.error(err);
     $('askResults').innerHTML = '<div class="empty">Erreur de recherche. Tu peux quand même envoyer ta demande.</div>';
   }
+}
+
+$('askBtn').onclick = () => {
+  askList = []; askPick = null;
+  $('askQuery').value = ''; $('askMsg').value = '';
+  $('askResults').innerHTML = tmdbKey ? '' : NO_KEY_MSG;
+  $('askDialog').showModal();
+  $('askQuery').focus();
+};
+
+/* Propositions automatiques pendant la frappe */
+$('askQuery').addEventListener('input', () => {
+  clearTimeout(askTimer);
+  askTimer = setTimeout(runAskSearch, 350);
 });
-$('askQuery').addEventListener('input', () => { if (askPick) { askPick = null; askList = []; $('askResults').innerHTML = ''; } });
+$('askType').addEventListener('change', runAskSearch);
+$('askForm').addEventListener('submit', e => { e.preventDefault(); clearTimeout(askTimer); runAskSearch(); });
 
 $('askSend').onclick = async () => {
   const p = askPick;
@@ -616,10 +631,10 @@ $('keyBtn').onclick = async () => {
   localStorage.setItem('tmdbKey', tmdbKey);
   try {
     await setDoc(doc(db, 'config', 'tmdb'), { apiKey: tmdbKey });
-    toast('Clé enregistrée ✓');
+    toast('Clé enregistrée et partagée ✓');
   } catch (err) {
     console.error(err);
-    toast('Clé gardée sur ce navigateur seulement (règles Firestore ?)');
+    toast('⚠️ Clé gardée sur ce navigateur seulement : publie les nouvelles règles Firestore', 6000);
   }
 };
 
