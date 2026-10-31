@@ -2,6 +2,7 @@
 <html lang="fr">
 <head>
 <meta charset="UTF-8">
+<meta name="robots" content="noindex, nofollow">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Vidéothèque</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -227,16 +228,14 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/fireba
 import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 import { getFirestore, collection, doc, getDoc, setDoc, updateDoc, deleteDoc, addDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
-/* ⚠️⚠️ REMPLACE CE BLOC PAR CELUI DE TON ANCIEN FICHIER ⚠️⚠️ */
 const firebaseConfig = {
-  apiKey: "COLLE_ICI",
+  apiKey: "AIzaSyCSXTITQx3oLlVT16Kk2SeACi9_G2gYLo0",
   authDomain: "cgtl-9b100.firebaseapp.com",
   projectId: "cgtl-9b100",
-  storageBucket: "cgtl-9b100.appspot.com",
-  messagingSenderId: "COLLE_ICI",
-  appId: "COLLE_ICI"
+  storageBucket: "cgtl-9b100.firebasestorage.app",
+  messagingSenderId: "996683479796",
+  appId: "1:996683479796:web:cb66241265ccf93394fca1"
 };
-/* ⚠️⚠️ FIN DU BLOC À REMPLACER ⚠️⚠️ */
 
 const ADMIN_UID   = 'jKg26DKLPPXRb0rlIGzKqL5g9Ft2';
 const GUEST_UID   = 'FZdvlZsdqZdg5grML79LqkVae2F3';
@@ -681,7 +680,7 @@ async function guestLogin() {
   if (!code) return;
   $('loginErr').textContent = '';
   try { await signInWithEmailAndPassword(auth, GUEST_EMAIL, code); }
-  catch (e) { console.warn(e.code); $('loginErr').textContent = 'Code incorrect.'; }
+  catch (e) { console.warn(e.code); $('loginErr').textContent = 'Code incorrect. (' + e.code + ')'; }
 }
 $('guestBtn').onclick = guestLogin;
 $('guestCode').addEventListener('keydown', e => { if (e.key === 'Enter') guestLogin(); });
@@ -689,7 +688,7 @@ $('guestCode').addEventListener('keydown', e => { if (e.key === 'Enter') guestLo
 async function adminLogin() {
   $('loginErr').textContent = '';
   try { await signInWithEmailAndPassword(auth, $('adminEmail').value.trim(), $('adminPass').value); }
-  catch (e) { console.warn(e.code); $('loginErr').textContent = 'Identifiants incorrects.'; }
+  catch (e) { console.warn(e.code); $('loginErr').textContent = 'Identifiants incorrects. (' + e.code + ')'; }
 }
 $('adminBtn').onclick = adminLogin;
 $('adminPass').addEventListener('keydown', e => { if (e.key === 'Enter') adminLogin(); });
