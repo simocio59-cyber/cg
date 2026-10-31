@@ -190,7 +190,7 @@ footer{border-top:1px solid var(--line);color:var(--mut);font-size:11px;text-ali
 <!-- ===== FENÊTRE DEMANDE ===== -->
 <dialog id="askDialog">
   <h3>📝 Demander un ajout</h3>
-  <div class="meta">Tape le titre : les propositions s'affichent toutes seules. Clique sur la bonne. Pas trouvé ? Envoie quand même, ton texte sera transmis.</div>
+  <div class="meta">Tape le titre puis clique sur Rechercher, et choisis le bon dans la liste. Pas trouvé ? Envoie quand même, ton texte sera transmis.</div>
   <form id="askForm" class="askSearch">
     <select id="askType">
       <option value="all">Tout</option>
@@ -198,7 +198,7 @@ footer{border-top:1px solid var(--line);color:var(--mut);font-size:11px;text-ali
       <option value="tv">Séries</option>
     </select>
     <input id="askQuery" type="text" maxlength="200" placeholder="Titre…" autocomplete="off">
-    <button type="submit">Chercher</button>
+    <button type="submit">Rechercher</button>
   </form>
   <div id="askResults" class="sugList"></div>
   <label for="askMsg">Message (facultatif)</label>
@@ -252,7 +252,7 @@ let isAdmin = false, tmdbKey = '';
 let films = [], requests = [];
 let unsubFilms = null, unsubReqs = null;
 let lastTmdb = [], askList = [], askPick = null;
-let askTimer = null, askSeq = 0;
+let askSeq = 0;
 let editing = null;
 const expanded = { movie: false, tv: false };
 
@@ -424,7 +424,7 @@ function renderCollection() {
 $('filterText').addEventListener('input', renderCollection);
 
 /* ---------- 📝 Demander un ajout (tout le monde) ---------- */
-const NO_KEY_MSG = '<div class="empty">Les propositions avec images ne sont pas disponibles pour le moment. Écris simplement le titre et clique sur Envoyer.</div>';
+const NO_KEY_MSG = '<div class="empty">La recherche avec images n\'est pas disponible pour le moment. Écris simplement le titre et clique sur Envoyer.</div>';
 
 function rowHTML(r, extra = '') {
   const img = r.poster_path ? `<img src="${IMG}w92${esc(r.poster_path)}" alt="">` : '<div class="ph"></div>';
@@ -453,13 +453,13 @@ function renderAsk() {
 async function runAskSearch() {
   const q = $('askQuery').value.trim();
   askPick = null;
-  if (q.length < 2) { askList = []; $('askResults').innerHTML = tmdbKey ? '' : NO_KEY_MSG; return; }
+  if (!q) { askList = []; $('askResults').innerHTML = '<div class="empty">Écris d\'abord un titre.</div>'; return; }
   if (!tmdbKey) { $('askResults').innerHTML = NO_KEY_MSG; return; }
   const seq = ++askSeq;
   $('askResults').innerHTML = '<div class="empty">Recherche…</div>';
   try {
     const res = (await searchTmdb(q, $('askType').value, '')).slice(0, 8);
-    if (seq !== askSeq) return;            // une recherche plus récente est en cours
+    if (seq !== askSeq) return;
     askList = res;
     if (!askList.length) { $('askResults').innerHTML = '<div class="empty">Aucun résultat. Tu peux quand même envoyer ta demande.</div>'; return; }
     renderAsk();
@@ -478,13 +478,13 @@ $('askBtn').onclick = () => {
   $('askQuery').focus();
 };
 
-/* Propositions automatiques pendant la frappe */
+/* La recherche se lance seulement avec le bouton Rechercher (ou Entrée) */
+$('askForm').addEventListener('submit', e => { e.preventDefault(); runAskSearch(); });
+
+/* Si on modifie le texte après avoir choisi un titre, on annule le choix */
 $('askQuery').addEventListener('input', () => {
-  clearTimeout(askTimer);
-  askTimer = setTimeout(runAskSearch, 350);
+  if (askPick) { askPick = null; askList = []; $('askResults').innerHTML = ''; }
 });
-$('askType').addEventListener('change', runAskSearch);
-$('askForm').addEventListener('submit', e => { e.preventDefault(); clearTimeout(askTimer); runAskSearch(); });
 
 $('askSend').onclick = async () => {
   const p = askPick;
